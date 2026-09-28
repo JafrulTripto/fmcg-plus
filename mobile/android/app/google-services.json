@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "699488118474",
+    "project_id": "fmcg-plus",
+    "storage_bucket": "fmcg-plus.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:699488118474:android:29aae9ec19ae66f289b633",
+        "android_client_info": {
+          "package_name": "com.tripzin.fmcgplus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmpXriRyh8OQWmrMTfcZnTkdE2p-R7Fyk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

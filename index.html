@@ -1,0 +1,3178 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>FMCG+ Retail POS & Customer Khata</title>
+  
+  <!-- Material Symbols & Google Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              DEFAULT: '#1D4ED8',
+              hover: '#1E40AF',
+              light: '#DBEAFE',
+              dark: '#172554',
+              container: '#EFF6FF'
+            },
+            secondary: {
+              DEFAULT: '#059669', // Emerald (Cash, Paid, Success)
+              hover: '#047857',
+              light: '#D1FAE5',
+              dark: '#064E3B'
+            },
+            tertiary: {
+              DEFAULT: '#DC2626', // Crimson (Credit, Due, Alerts)
+              hover: '#B91C1C',
+              light: '#FEE2E2',
+              dark: '#7F1D1D'
+            },
+            amber: {
+              DEFAULT: '#D97706',
+              light: '#FEF3C7'
+            },
+            surface: {
+              DEFAULT: '#FFFFFF',
+              canvas: '#F8FAFC',
+              dark: '#131B2E',
+              canvasDark: '#090D16',
+              border: '#E2E8F0',
+              borderDark: '#1E293B'
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Space Grotesk"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          boxShadow: {
+            'tactile': '0 2px 0 0 rgba(0,0,0,0.06), 0 1px 3px 0 rgba(0,0,0,0.08)',
+            'elevated': '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.08)',
+            'card': '0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04)'
+          }
+        }
+      }
+    };
+  </script>
+  
+  <style>
+    /* Custom Scrollbars and Touch Feedback */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 9999px; }
+    .dark ::-webkit-scrollbar-thumb { background: #334155; }
+    
+    .touch-btn:active {
+      transform: translateY(1px);
+    }
+    
+    .pb-safe { padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 1.25rem)); }
+    .pt-safe { padding-top: max(0.75rem, env(safe-area-inset-top, 0.75rem)); }
+    
+    /* Thermal Receipt Print Styles */
+    @media print {
+      body * { visibility: hidden; }
+      #printable-receipt, #printable-receipt * { visibility: visible; }
+      #printable-receipt {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 80mm;
+        margin: 0;
+        padding: 8px;
+        box-shadow: none;
+        border: none;
+      }
+    }
+    
+    /* Laser Scan Animation */
+    @keyframes scanMove {
+      0% { top: 5%; opacity: 0.8; }
+      50% { top: 92%; opacity: 1; }
+      100% { top: 5%; opacity: 0.8; }
+    }
+    .scanner-laser {
+      animation: scanMove 2.2s infinite ease-in-out;
+    }
+    
+    /* Shimmer Loader */
+    @keyframes shimmer {
+      100% { transform: translateX(100%); }
+    }
+    .skeleton-shimmer {
+      position: relative;
+      overflow: hidden;
+    }
+    .skeleton-shimmer::after {
+      position: absolute;
+      top: 0; right: 0; bottom: 0; left: 0;
+      transform: translateX(-100%);
+      background-image: linear-gradient(90deg, rgba(255,255,255,0) 0, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+      animation: shimmer 1.5s infinite;
+      content: '';
+    }
+    .dark .skeleton-shimmer::after {
+      background-image: linear-gradient(90deg, rgba(255,255,255,0) 0, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%);
+    }
+  </style>
+</head>
+
+<body class="bg-slate-900 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen flex flex-col items-center justify-start p-0 md:py-6 select-none transition-colors duration-200">
+
+  <!-- TOP APP UTILITY RIBBON (Presenter Bar) -->
+  <header class="w-full max-w-5xl px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300 z-50">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-1.5 font-display font-bold text-white tracking-wide text-sm">
+        <img src="mobile/assets/images/app_logo.png" class="w-6 h-6 rounded-md object-contain shadow-sm" alt="DokanPOS Logo" />
+        <span>FMCG+ POS</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-normal">v2.4 Mobile</span>
+      </div>
+      
+      <!-- Role Switcher -->
+      <div class="bg-slate-800 p-0.5 rounded-lg flex items-center border border-slate-700">
+        <button id="role-shopkeeper-btn" onclick="switchUserType('shopkeeper')" class="px-2.5 py-1 rounded-md font-semibold text-white bg-blue-600 shadow-sm transition-all flex items-center gap-1">
+          <span class="material-symbols-outlined text-[14px]">point_of_sale</span>
+          <span>Shopkeeper</span>
+        </button>
+        <button id="role-customer-btn" onclick="switchUserType('customer')" class="px-2.5 py-1 rounded-md font-medium text-slate-400 hover:text-white transition-all flex items-center gap-1">
+          <span class="material-symbols-outlined text-[14px]">person</span>
+          <span>Customer App</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Simulation Tools -->
+    <div class="flex items-center gap-2">
+      <!-- State Jump Menu -->
+      <button onclick="toggleModal('statePickerModal', true)" class="px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1 active:scale-95 transition-transform" title="Test All UI States">
+        <span class="material-symbols-outlined text-[14px] text-amber-400">tune</span>
+        <span class="hidden sm:inline">UI States</span>
+      </button>
+
+      <!-- Offline Toggle -->
+      <button id="offline-toggle-btn" onclick="toggleOfflineMode()" class="px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 flex items-center gap-1 transition-all active:scale-95" title="Toggle Network State">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="network-dot"></span>
+        <span id="network-text">Online</span>
+      </button>
+
+      <!-- Dark Mode Switch -->
+      <button onclick="toggleDarkMode()" class="w-7 h-7 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center active:scale-95 transition-transform" title="Toggle Light/Dark Theme">
+        <span class="material-symbols-outlined text-[16px]" id="theme-icon">dark_mode</span>
+      </button>
+
+      <!-- Viewport Mode (Frame vs Fluid) -->
+      <button onclick="toggleViewportFrame()" class="w-7 h-7 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center active:scale-95 transition-transform hidden sm:flex" title="Toggle Phone Frame">
+        <span class="material-symbols-outlined text-[16px]" id="viewport-icon">smartphone</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- OFFLINE STATUS NOTIFICATION BANNER (When offline) -->
+  <div id="offline-banner" class="hidden w-full max-w-md bg-amber-500 text-slate-950 px-3 py-1.5 text-xs font-semibold flex items-center justify-between shadow-md mb-2 rounded-lg">
+    <div class="flex items-center gap-1.5">
+      <span class="material-symbols-outlined text-[16px]">wifi_off</span>
+      <span>Offline Mode — Sales saved locally to device</span>
+    </div>
+    <span id="offline-queue-badge" class="px-1.5 py-0.5 bg-black/20 rounded font-mono text-[10px]">0 Queued</span>
+  </div>
+
+  <!-- MAIN DEVICE WRAPPER -->
+  <div id="device-container" class="w-full max-w-md md:h-[860px] md:max-h-[92vh] bg-surface-canvas dark:bg-surface-canvasDark md:rounded-[40px] md:shadow-2xl overflow-hidden flex flex-col relative border-0 md:border-[8px] md:border-slate-800 transition-all duration-300">
+    
+    <!-- MOBILE STATUS BAR (Android/iOS Simulated) -->
+    <div class="h-6 px-5 pt-1.5 flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-surface dark:bg-surface-dark select-none shrink-0 z-40 border-b border-surface-border/40 dark:border-surface-borderDark/40">
+      <span id="device-time" class="font-mono">15:24</span>
+      <div class="w-20 h-4 bg-slate-900 rounded-full mx-auto hidden md:block"></div>
+      <div class="flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-[13px]">signal_cellular_4_bar</span>
+        <span class="material-symbols-outlined text-[13px]">wifi</span>
+        <span class="material-symbols-outlined text-[14px]">battery_charging_full</span>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 1. SHOPKEEPER APP VIEW CONTAINER           -->
+    <!-- ========================================== -->
+    <div id="shopkeeper-view" class="flex-1 flex flex-col overflow-hidden relative">
+      
+      <!-- Top Store App Bar -->
+      <header class="h-14 px-4 bg-surface dark:bg-surface-dark border-b border-surface-border dark:border-surface-borderDark flex items-center justify-between shrink-0 z-30">
+        <div class="flex items-center gap-2.5">
+          <img src="mobile/assets/images/app_logo.png" class="w-9 h-9 rounded-xl object-contain shadow-sm" alt="DokanPOS Logo" />
+          <div>
+            <div class="flex items-center gap-1">
+              <h1 class="font-bold text-sm text-slate-900 dark:text-white leading-tight">Bhai Bhai Store</h1>
+              <span class="material-symbols-outlined text-[16px] text-slate-400">verified</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span id="sync-status-label">Synced • Mirpur 10</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1">
+          <!-- Fast Barcode Button Header -->
+          <button onclick="openBarcodeScanner()" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center active:scale-95 transition-transform" title="Quick Scan">
+            <span class="material-symbols-outlined text-[20px]">barcode_scanner</span>
+          </button>
+          <!-- Quick Cart Drawer Trigger (badge count) -->
+          <button onclick="toggleCartDrawer(true)" class="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center relative active:scale-95 transition-transform" title="Cart">
+            <span class="material-symbols-outlined text-[20px]">shopping_cart</span>
+            <span id="header-cart-badge" class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center hidden">0</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Scrollable Tab Content Area -->
+      <main id="shopkeeper-content" class="flex-1 overflow-y-auto overflow-x-hidden bg-surface-canvas dark:bg-surface-canvasDark relative">
+        
+        <!-- --------------------------------------- -->
+        <!-- TAB 1: DASHBOARD                        -->
+        <!-- --------------------------------------- -->
+        <section id="tab-dashboard" class="p-4 space-y-4 pb-24">
+          <!-- Time Horizon & Sync Strip -->
+          <div class="flex items-center justify-between text-xs">
+            <div class="inline-flex bg-slate-200 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-300 dark:border-slate-700">
+              <button onclick="setDashboardPeriod('today')" id="period-today" class="px-2.5 py-1 rounded-md bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 font-semibold shadow-sm">Today</button>
+              <button onclick="setDashboardPeriod('yesterday')" id="period-yesterday" class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 font-medium">Yesterday</button>
+              <button onclick="setDashboardPeriod('week')" id="period-week" class="px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 font-medium">This Week</button>
+            </div>
+            <span class="text-[11px] text-slate-400 flex items-center gap-1">
+              <span class="material-symbols-outlined text-[13px]">schedule</span>
+              Live Ledger
+            </span>
+          </div>
+
+          <!-- Hero Bento Metrics -->
+          <div class="grid grid-cols-2 gap-3">
+            <!-- Today's Total Gross Sales (Span 2) -->
+            <div class="col-span-2 rounded-2xl bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700 p-4 text-white shadow-tactile relative overflow-hidden">
+              <div class="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/10 pointer-events-none"></div>
+              <div class="flex justify-between items-start">
+                <div>
+                  <span class="text-[11px] font-semibold tracking-wider uppercase text-blue-200">Today's Sales</span>
+                  <div class="flex items-baseline gap-1 mt-0.5">
+                    <span id="kpi-today-sales" class="font-display text-3xl font-bold tracking-tight">৳18,450</span>
+                  </div>
+                </div>
+                <div class="px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 border border-emerald-300/30 text-[11px] font-bold flex items-center gap-0.5">
+                  <span class="material-symbols-outlined text-[14px]">trending_up</span>
+                  <span>+14%</span>
+                </div>
+              </div>
+              <div class="mt-3 pt-3 border-t border-white/15 flex items-center justify-between text-xs text-blue-100">
+                <span class="flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[16px]">receipt_long</span>
+                  <span id="kpi-today-orders" class="font-bold text-white">42</span> completed orders
+                </span>
+                <span class="text-blue-200">Yesterday: ৳16,180</span>
+              </div>
+            </div>
+
+            <!-- Total Outstanding Khata Dues (Baaki) -->
+            <div onclick="switchTab('customers')" class="col-span-1 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 p-3.5 shadow-sm cursor-pointer active:scale-95 transition-all">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">Khata Dues (বাকি)</span>
+                <span class="material-symbols-outlined text-rose-600 text-[16px]">pending_actions</span>
+              </div>
+              <div id="kpi-outstanding-credit" class="mt-1.5 font-display text-xl font-bold text-rose-700 dark:text-rose-300">
+                ৳24,800
+              </div>
+              <div class="mt-2 text-[10px] text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[13px]">warning</span>
+                <span>18 customers owe</span>
+              </div>
+            </div>
+
+            <!-- Low-Stock Alert -->
+            <div onclick="openLowStockFilter()" class="col-span-1 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 p-3.5 shadow-sm cursor-pointer active:scale-95 transition-all">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Low Stock</span>
+                <span class="material-symbols-outlined text-amber-600 text-[16px]">inventory_2</span>
+              </div>
+              <div id="kpi-low-stock-count" class="mt-1.5 font-display text-xl font-bold text-amber-700 dark:text-amber-300">
+                4 Items
+              </div>
+              <div class="mt-2 text-[10px] text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[13px]">priority_high</span>
+                <span>Needs restock</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Thumb Tactile Actions (Min 48px targets) -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <span>Quick Counter Actions</span>
+              <span class="text-[10px] text-blue-600 dark:text-blue-400">One-Tap Flow</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+              <!-- Huge New Sale Primary Touch Target -->
+              <button onclick="switchTab('sell')" class="h-20 p-3 rounded-2xl bg-blue-600 text-white flex flex-col justify-between shadow-tactile active:bg-blue-700 active:scale-95 transition-all text-left">
+                <div class="flex items-center justify-between w-full">
+                  <div class="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
+                  </div>
+                  <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-emerald-400 text-slate-900">Instant</span>
+                </div>
+                <div>
+                  <div class="font-bold text-sm leading-tight">New Sale</div>
+                  <div class="text-[11px] text-blue-100">Ring up customer</div>
+                </div>
+              </button>
+
+              <!-- Scan Barcode Button -->
+              <button onclick="openBarcodeScanner()" class="h-20 p-3 rounded-2xl bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-900 dark:text-white flex flex-col justify-between shadow-sm active:scale-95 transition-all text-left">
+                <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-[20px]">barcode_scanner</span>
+                </div>
+                <div>
+                  <div class="font-bold text-sm leading-tight">Scan Barcode</div>
+                  <div class="text-[11px] text-slate-500 dark:text-slate-400">Camera reader</div>
+                </div>
+              </button>
+
+              <!-- Add Product -->
+              <button onclick="openAddProductModal()" class="h-16 p-3 rounded-xl bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-800 dark:text-slate-200 flex items-center gap-2.5 shadow-sm active:scale-95 transition-all">
+                <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[18px]">add_box</span>
+                </div>
+                <div class="text-left">
+                  <div class="font-bold text-xs">Add Product</div>
+                  <div class="text-[10px] text-slate-400">Inventory item</div>
+                </div>
+              </button>
+
+              <!-- Add Customer -->
+              <button onclick="openAddCustomerModal()" class="h-16 p-3 rounded-xl bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-800 dark:text-slate-200 flex items-center gap-2.5 shadow-sm active:scale-95 transition-all">
+                <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                  <span class="material-symbols-outlined text-[18px]">person_add</span>
+                </div>
+                <div class="text-left">
+                  <div class="font-bold text-xs">Add Customer</div>
+                  <div class="text-[10px] text-slate-400">Khata profile</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Recent Sales Feed -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <span>Recent Sales</span>
+              <button onclick="switchTab('customers')" class="text-blue-600 dark:text-blue-400 font-semibold normal-case text-xs">View All</button>
+            </div>
+            
+            <div id="recent-sales-list" class="space-y-2">
+              <!-- Dynamically Populated with Recent Transactions -->
+            </div>
+          </div>
+        </section>
+
+        <!-- --------------------------------------- -->
+        <!-- TAB 2: SELL / POS TERMINAL              -->
+        <!-- --------------------------------------- -->
+        <section id="tab-sell" class="hidden p-3 space-y-3 pb-32">
+          
+          <!-- Search & Barcode Quick Header -->
+          <div class="flex items-center gap-2">
+            <div class="flex-1 relative">
+              <span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-[18px]">search</span>
+              <input id="pos-search-input" oninput="filterPOSProducts()" type="text" placeholder="Search product, barcode, SKU..." class="w-full h-11 pl-9 pr-8 rounded-xl bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none dark:text-white" />
+              <button onclick="clearPOSSearch()" id="pos-search-clear" class="hidden absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600">
+                <span class="material-symbols-outlined text-[18px]">cancel</span>
+              </button>
+            </div>
+            <button onclick="openBarcodeScanner()" class="h-11 px-3 bg-blue-600 text-white rounded-xl flex items-center gap-1.5 active:bg-blue-700 transition-all font-semibold text-xs shadow-sm">
+              <span class="material-symbols-outlined text-[20px]">barcode_scanner</span>
+              <span class="hidden sm:inline">Scan</span>
+            </button>
+          </div>
+
+          <!-- Category Filter Pills -->
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+            <button onclick="filterCategory('All')" class="cat-pill px-3 py-1.5 rounded-full bg-blue-600 text-white font-semibold shrink-0 shadow-sm transition-all" data-cat="All">All Items</button>
+            <button onclick="filterCategory('Food')" class="cat-pill px-3 py-1.5 rounded-full bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-600 dark:text-slate-300 font-medium shrink-0" data-cat="Food">Food (মুদি)</button>
+            <button onclick="filterCategory('Beverages')" class="cat-pill px-3 py-1.5 rounded-full bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-600 dark:text-slate-300 font-medium shrink-0" data-cat="Beverages">Beverages</button>
+            <button onclick="filterCategory('Household')" class="cat-pill px-3 py-1.5 rounded-full bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-600 dark:text-slate-300 font-medium shrink-0" data-cat="Household">Household</button>
+            <button onclick="filterCategory('Personal Care')" class="cat-pill px-3 py-1.5 rounded-full bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-600 dark:text-slate-300 font-medium shrink-0" data-cat="Personal Care">Personal Care</button>
+            <button onclick="filterCategory('Baby Products')" class="cat-pill px-3 py-1.5 rounded-full bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-600 dark:text-slate-300 font-medium shrink-0" data-cat="Baby Products">Baby Products</button>
+          </div>
+
+          <!-- Product Grid Catalog -->
+          <div id="pos-product-grid" class="grid grid-cols-2 gap-2.5">
+            <!-- Dynamically populated with fast-add product cards -->
+          </div>
+
+          <!-- Empty Search State -->
+          <div id="pos-empty-search" class="hidden py-12 flex flex-col items-center justify-center text-center p-6 text-slate-400">
+            <div class="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-2 text-slate-400">
+              <span class="material-symbols-outlined text-[28px]">search_off</span>
+            </div>
+            <h3 class="font-bold text-sm text-slate-700 dark:text-slate-300">No products found</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-xs">No matching product found with this barcode, SKU, or name.</p>
+            <button onclick="openAddProductModal()" class="mt-3 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold">
+              + Add Custom Product
+            </button>
+          </div>
+        </section>
+
+        <!-- --------------------------------------- -->
+        <!-- TAB 3: INVENTORY MANAGEMENT             -->
+        <!-- --------------------------------------- -->
+        <section id="tab-inventory" class="hidden p-3 space-y-3 pb-24">
+          <!-- Inventory Search and Add Action -->
+          <div class="flex items-center gap-2">
+            <div class="flex-1 relative">
+              <span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-[18px]">search</span>
+              <input id="inv-search-input" oninput="filterInventoryProducts()" type="text" placeholder="Search catalog..." class="w-full h-11 pl-9 pr-3 rounded-xl bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none dark:text-white" />
+            </div>
+            <button onclick="openAddProductModal()" class="h-11 px-3 bg-blue-600 text-white rounded-xl flex items-center gap-1 font-semibold text-xs shadow-sm active:bg-blue-700 transition-all">
+              <span class="material-symbols-outlined text-[18px]">add</span>
+              <span>Add</span>
+            </button>
+          </div>
+
+          <!-- Inventory Filter Pills (Stock Level Filters) -->
+          <div class="flex items-center gap-1.5 text-xs">
+            <button onclick="setInventoryStockFilter('all')" id="inv-filter-all" class="px-2.5 py-1 rounded-full bg-blue-600 text-white font-semibold">All Stock</button>
+            <button onclick="setInventoryStockFilter('low')" id="inv-filter-low" class="px-2.5 py-1 rounded-full bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-600 dark:text-slate-300 font-medium">⚠️ Low Stock (≤ 5)</button>
+            <button onclick="setInventoryStockFilter('out')" id="inv-filter-out" class="px-2.5 py-1 rounded-full bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-600 dark:text-slate-300 font-medium">Out of Stock</button>
+          </div>
+
+          <!-- Inventory List Items -->
+          <div id="inventory-list" class="space-y-2">
+            <!-- Dynamically populated with inventory list rows -->
+          </div>
+        </section>
+
+        <!-- --------------------------------------- -->
+        <!-- TAB 4: CUSTOMERS & DUKANDARI KHATA      -->
+        <!-- --------------------------------------- -->
+        <section id="tab-customers" class="hidden p-3 space-y-3 pb-24">
+          <!-- Total Credit Summary Card -->
+          <div class="rounded-2xl bg-gradient-to-r from-rose-600 to-rose-700 p-4 text-white shadow-tactile">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-rose-200">Total Customer Khata Dues</span>
+              <span class="px-2 py-0.5 rounded-full bg-black/20 text-[10px] font-mono">18 Debtors</span>
+            </div>
+            <div class="mt-1 font-display text-2xl font-bold">৳24,800</div>
+            <div class="mt-2 pt-2 border-t border-white/20 flex items-center justify-between text-xs text-rose-100">
+              <span>Collected today: ৳3,800</span>
+              <button onclick="openAddCustomerModal()" class="text-white font-bold underline text-xs">+ New Customer</button>
+            </div>
+          </div>
+
+          <!-- Customer Search -->
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-[18px]">search</span>
+            <input id="customer-search-input" oninput="filterCustomerList()" type="text" placeholder="Search customer name or phone..." class="w-full h-11 pl-9 pr-3 rounded-xl bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none dark:text-white" />
+          </div>
+
+          <!-- Customer Filter Tabs -->
+          <div class="flex items-center gap-1.5 text-xs">
+            <button onclick="filterCustomerTab('all')" id="cust-tab-all" class="px-2.5 py-1 rounded-full bg-blue-600 text-white font-semibold">All (4)</button>
+            <button onclick="filterCustomerTab('due')" id="cust-tab-due" class="px-2.5 py-1 rounded-full bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-600 dark:text-slate-300 font-medium">Due Balance (3)</button>
+            <button onclick="filterCustomerTab('zero')" id="cust-tab-zero" class="px-2.5 py-1 rounded-full bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-600 dark:text-slate-300 font-medium">Zero Balance (1)</button>
+          </div>
+
+          <!-- Customer Cards List -->
+          <div id="customers-list" class="space-y-2">
+            <!-- Dynamically populated customer list -->
+          </div>
+        </section>
+
+        <!-- --------------------------------------- -->
+        <!-- TAB 5: MORE / SETTINGS                  -->
+        <!-- --------------------------------------- -->
+        <section id="tab-settings" class="hidden p-4 space-y-4 pb-24">
+          <div class="bg-surface dark:bg-surface-dark rounded-2xl p-4 border border-surface-border dark:border-surface-borderDark shadow-sm flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-bold">BB</div>
+            <div>
+              <h2 class="font-bold text-sm text-slate-900 dark:text-white">Bhai Bhai General Store</h2>
+              <p class="text-xs text-slate-500">Merchant ID: FMCG-BD-8902</p>
+              <p class="text-[11px] text-slate-400">Road 4, Mirpur 10, Dhaka • 01812-345678</p>
+            </div>
+          </div>
+
+          <!-- Settings Groups -->
+          <div class="space-y-2 text-xs">
+            <div class="font-bold text-slate-500 uppercase tracking-wider text-[11px] px-1">Hardware & POS</div>
+            
+            <div class="bg-surface dark:bg-surface-dark rounded-xl border border-surface-border dark:border-surface-borderDark divide-y divide-surface-border dark:divide-surface-borderDark overflow-hidden shadow-sm">
+              <div class="p-3 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-slate-500 text-[18px]">print</span>
+                  <div>
+                    <div class="font-semibold text-slate-800 dark:text-slate-200">Thermal Receipt Printer</div>
+                    <div class="text-[11px] text-slate-400">Bluetooth 58mm / 80mm ESC/POS</div>
+                  </div>
+                </div>
+                <span class="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-600 text-[10px] font-bold">Connected</span>
+              </div>
+
+              <div class="p-3 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-slate-500 text-[18px]">barcode_scanner</span>
+                  <div>
+                    <div class="font-semibold text-slate-800 dark:text-slate-200">Camera Barcode Scanner</div>
+                    <div class="text-[11px] text-slate-400">High-speed camera sensor with auto-laser</div>
+                  </div>
+                </div>
+                <span class="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-600 text-[10px] font-bold">Active</span>
+              </div>
+            </div>
+
+            <div class="font-bold text-slate-500 uppercase tracking-wider text-[11px] px-1 pt-2">Data & Storage</div>
+            
+            <div class="bg-surface dark:bg-surface-dark rounded-xl border border-surface-border dark:border-surface-borderDark divide-y divide-surface-border dark:divide-surface-borderDark overflow-hidden shadow-sm">
+              <div class="p-3 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-slate-500 text-[18px]">sync</span>
+                  <div>
+                    <div class="font-semibold text-slate-800 dark:text-slate-200">Local Offline Database</div>
+                    <div class="text-[11px] text-slate-400">480 products cached locally in IndexedDB</div>
+                  </div>
+                </div>
+                <button onclick="simulateSync()" class="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-[11px] active:scale-95">Sync Now</button>
+              </div>
+
+              <div class="p-3 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-slate-500 text-[18px]">translate</span>
+                  <div>
+                    <div class="font-semibold text-slate-800 dark:text-slate-200">Language / ভাষা</div>
+                    <div class="text-[11px] text-slate-400">English & বাংলা bilingual</div>
+                  </div>
+                </div>
+                <span class="font-semibold text-slate-700 dark:text-slate-300">English (BD)</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- PERSISTENT BOTTOM NAVIGATION BAR (Shopkeeper) -->
+      <nav class="h-16 px-2 bg-surface dark:bg-surface-dark border-t border-surface-border dark:border-surface-borderDark flex items-center justify-around shrink-0 z-30 shadow-lg">
+        <button onclick="switchTab('dashboard')" id="nav-btn-dashboard" class="nav-tab-btn flex-1 py-1 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[22px]">dashboard</span>
+          <span class="text-[10px] font-semibold mt-0.5">Dashboard</span>
+        </button>
+
+        <button onclick="switchTab('sell')" id="nav-btn-sell" class="nav-tab-btn flex-1 py-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-800 active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[22px]">point_of_sale</span>
+          <span class="text-[10px] font-semibold mt-0.5">Sell (POS)</span>
+        </button>
+
+        <button onclick="switchTab('inventory')" id="nav-btn-inventory" class="nav-tab-btn flex-1 py-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-800 active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[22px]">inventory_2</span>
+          <span class="text-[10px] font-semibold mt-0.5">Inventory</span>
+        </button>
+
+        <button onclick="switchTab('customers')" id="nav-btn-customers" class="nav-tab-btn flex-1 py-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-800 active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[22px]">groups</span>
+          <span class="text-[10px] font-semibold mt-0.5">Customers</span>
+        </button>
+
+        <button onclick="switchTab('settings')" id="nav-btn-settings" class="nav-tab-btn flex-1 py-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-800 active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[22px]">settings</span>
+          <span class="text-[10px] font-semibold mt-0.5">Settings</span>
+        </button>
+      </nav>
+
+      <!-- PERSISTENT DOCKED CART BAR (In Sell Tab when items > 0) -->
+      <div id="docked-cart-bar" class="hidden absolute bottom-16 left-0 right-0 p-3 bg-surface/95 dark:bg-surface-dark/95 backdrop-blur-md border-t border-surface-border dark:border-surface-borderDark shadow-elevated z-25 flex items-center justify-between">
+        <div onclick="toggleCartDrawer(true)" class="flex items-center gap-2.5 cursor-pointer flex-1">
+          <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold">
+            <span id="docked-cart-count" class="font-mono text-sm">3</span>
+          </div>
+          <div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400">Total Bill</div>
+            <div id="docked-cart-total" class="font-display font-bold text-lg text-slate-900 dark:text-white leading-none">৳370</div>
+          </div>
+        </div>
+        <button onclick="openPaymentModal()" class="h-11 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-tactile active:scale-95 transition-all">
+          <span>Checkout</span>
+          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 2. CUSTOMER APP VIEW CONTAINER             -->
+    <!-- ========================================== -->
+    <div id="customer-view" class="hidden flex-1 flex flex-col overflow-hidden relative">
+      
+      <!-- Customer Header -->
+      <header class="h-14 px-4 bg-surface dark:bg-surface-dark border-b border-surface-border dark:border-surface-borderDark flex items-center justify-between shrink-0 z-30">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold">
+            <span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+          </div>
+          <div>
+            <h1 class="font-bold text-xs text-slate-900 dark:text-white leading-tight">Rafiqul Islam</h1>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400">Customer ID: #CUST-4092</div>
+          </div>
+        </div>
+        <button onclick="switchUserType('shopkeeper')" class="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[11px] flex items-center gap-1 active:scale-95">
+          <span class="material-symbols-outlined text-[14px]">logout</span>
+          <span>Exit</span>
+        </button>
+      </header>
+
+      <!-- Customer App Content -->
+      <main class="flex-1 overflow-y-auto p-4 space-y-4 pb-20 bg-surface-canvas dark:bg-surface-canvasDark">
+        
+        <!-- Store Banner Info -->
+        <div class="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 rounded-2xl p-3 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-blue-600 text-[20px]">storefront</span>
+            <div>
+              <div class="font-bold text-slate-900 dark:text-white">Bhai Bhai General Store</div>
+              <div class="text-[11px] text-slate-500">Mirpur 10, Dhaka • 01812-345678</div>
+            </div>
+          </div>
+          <span class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold text-[10px]">Verified Shop</span>
+        </div>
+
+        <!-- Outstanding Balance Hero -->
+        <div class="rounded-2xl bg-gradient-to-br from-rose-600 via-rose-700 to-rose-800 p-5 text-white shadow-tactile relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-rose-200">Current Outstanding Balance</span>
+            <span class="px-2 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-bold">Khata Due</span>
+          </div>
+          <div class="mt-2 flex items-baseline gap-1">
+            <span class="font-display text-4xl font-bold">৳170</span>
+          </div>
+          <p class="text-[11px] text-rose-200 mt-1">Updated from Order #1085 (Remaining due)</p>
+
+          <!-- Quick Action Buttons -->
+          <div class="mt-4 pt-3 border-t border-white/20 flex gap-2">
+            <button onclick="simulateCustomerPayment(170)" class="flex-1 h-10 rounded-xl bg-white text-rose-700 font-bold text-xs flex items-center justify-center gap-1 active:scale-95 shadow-sm">
+              <span class="material-symbols-outlined text-[16px]">qr_code_2</span>
+              <span>Pay via bKash / Nagad</span>
+            </button>
+            <button onclick="openReceiptModal(demoReceiptData)" class="h-10 px-3 rounded-xl bg-rose-800 text-white font-bold text-xs flex items-center justify-center gap-1 active:scale-95">
+              <span class="material-symbols-outlined text-[16px]">receipt</span>
+              <span>Latest Memo</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Lifetime Metrics -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-surface dark:bg-surface-dark p-3 rounded-xl border border-surface-border dark:border-surface-borderDark shadow-sm">
+            <span class="text-[10px] text-slate-400 uppercase font-bold">Total Purchases</span>
+            <div class="font-display font-bold text-lg text-slate-800 dark:text-slate-200 mt-0.5">৳14,890</div>
+            <div class="text-[10px] text-emerald-600 font-medium">32 Total Orders</div>
+          </div>
+          <div class="bg-surface dark:bg-surface-dark p-3 rounded-xl border border-surface-border dark:border-surface-borderDark shadow-sm">
+            <span class="text-[10px] text-slate-400 uppercase font-bold">Store Credit Limit</span>
+            <div class="font-display font-bold text-lg text-slate-800 dark:text-slate-200 mt-0.5">৳5,000</div>
+            <div class="text-[10px] text-blue-600 font-medium">৳4,830 Available</div>
+          </div>
+        </div>
+
+        <!-- Recent Purchases List for Customer -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+            <span>Recent Purchases & Memos</span>
+            <span class="text-[10px] text-slate-400">Tap to inspect</span>
+          </div>
+
+          <!-- Exact Order #1085 from prompt -->
+          <div onclick="openReceiptModal(demoReceiptData)" class="bg-surface dark:bg-surface-dark p-3.5 rounded-xl border border-surface-border dark:border-surface-borderDark shadow-sm active:scale-95 transition-all cursor-pointer">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs">
+                  <span class="material-symbols-outlined text-[18px]">receipt</span>
+                </span>
+                <div>
+                  <div class="font-bold text-xs text-slate-900 dark:text-white">Order #1085 • Cash Memo</div>
+                  <div class="text-[11px] text-slate-400">Today, 03:50 PM • 3 items</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="font-display font-bold text-sm text-slate-900 dark:text-white">৳370</div>
+                <span class="text-[10px] font-bold text-amber-600 dark:text-amber-400">Paid ৳200 • Due ৳170</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Prior Order -->
+          <div class="bg-surface dark:bg-surface-dark p-3.5 rounded-xl border border-surface-border dark:border-surface-borderDark shadow-sm text-xs">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-bold text-slate-800 dark:text-slate-200">Order #1042</div>
+                <div class="text-[11px] text-slate-400">05 Nov 2026 • Aarong Ghee, Dano</div>
+              </div>
+              <div class="text-right">
+                <div class="font-display font-bold text-sm text-slate-800 dark:text-slate-200">৳940</div>
+                <span class="text-[10px] font-bold text-emerald-600">Full Paid</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- Customer Bottom Nav -->
+      <nav class="h-14 px-4 bg-surface dark:bg-surface-dark border-t border-surface-border dark:border-surface-borderDark flex items-center justify-around shrink-0 z-30 text-xs">
+        <button class="flex flex-col items-center text-emerald-600 font-semibold">
+          <span class="material-symbols-outlined text-[20px]">home</span>
+          <span class="text-[10px]">Home</span>
+        </button>
+        <button onclick="openReceiptModal(demoReceiptData)" class="flex flex-col items-center text-slate-400">
+          <span class="material-symbols-outlined text-[20px]">receipt_long</span>
+          <span class="text-[10px]">Receipts</span>
+        </button>
+        <button onclick="simulateCustomerPayment(170)" class="flex flex-col items-center text-slate-400">
+          <span class="material-symbols-outlined text-[20px]">payments</span>
+          <span class="text-[10px]">Pay bKash</span>
+        </button>
+      </nav>
+
+    </div>
+
+  </div> <!-- End device container -->
+
+  <!-- ========================================== -->
+  <!-- MODALS & OVERLAYS                          -->
+  <!-- ========================================== -->
+
+  <!-- 1. BARCODE SCANNER CAMERA HUD OVERLAY -->
+  <div id="barcodeScannerModal" class="hidden fixed inset-0 z-50 bg-black/90 flex flex-col justify-between items-center text-white p-4">
+    <!-- Scanner Top Bar -->
+    <div class="w-full max-w-md flex items-center justify-between pt-safe">
+      <button onclick="closeBarcodeScanner()" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center active:scale-95">
+        <span class="material-symbols-outlined text-[22px]">close</span>
+      </button>
+      <div class="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md font-mono text-xs flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span>Aim camera at barcode</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="scanner-torch-btn" onclick="toggleTorch()" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center active:scale-95">
+          <span class="material-symbols-outlined text-[20px]">flashlight_on</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Scanner Viewfinder Box -->
+    <div class="relative w-72 h-64 sm:w-80 sm:h-72 rounded-3xl border-2 border-white/30 flex items-center justify-center overflow-hidden my-auto shadow-2xl">
+      <!-- Framing Corners -->
+      <div class="absolute top-2 left-2 w-8 h-8 border-t-4 border-l-4 border-emerald-400 rounded-tl-xl"></div>
+      <div class="absolute top-2 right-2 w-8 h-8 border-t-4 border-r-4 border-emerald-400 rounded-tr-xl"></div>
+      <div class="absolute bottom-2 left-2 w-8 h-8 border-b-4 border-l-4 border-emerald-400 rounded-bl-xl"></div>
+      <div class="absolute bottom-2 right-2 w-8 h-8 border-b-4 border-r-4 border-emerald-400 rounded-br-xl"></div>
+      
+      <!-- Laser Beam -->
+      <div class="scanner-laser absolute left-4 right-4 h-1 bg-gradient-to-r from-emerald-500 via-emerald-300 to-emerald-500 shadow-[0_0_12px_#34d399]"></div>
+      
+      <!-- Center Barcode Graphic Guide -->
+      <span class="material-symbols-outlined text-white/20 text-7xl select-none">barcode_scanner</span>
+    </div>
+
+    <!-- Scanner Bottom Simulation Controls -->
+    <div class="w-full max-w-md pb-safe space-y-2">
+      <div class="text-center text-xs text-white/70">3-State Barcode Simulation Triggers:</div>
+      <div class="grid grid-cols-3 gap-2">
+        <!-- 1. Known Store Item Trigger -->
+        <button onclick="simulateScanBarcode('8941100100011')" class="h-12 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-[11px] flex flex-col items-center justify-center shadow-md active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[16px]">check_circle</span>
+          <span>1. In Store</span>
+        </button>
+        <!-- 2. Catalog Matched Item Trigger -->
+        <button onclick="simulateScanBarcode('8941100511862')" class="h-12 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-[11px] flex flex-col items-center justify-center shadow-md active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[16px]">verified</span>
+          <span>2. Catalog</span>
+        </button>
+        <!-- 3. Unknown Item Trigger -->
+        <button onclick="simulateScanBarcode('8941999888123')" class="h-12 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold text-[11px] flex flex-col items-center justify-center shadow-md active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[16px]">help</span>
+          <span>3. Unknown</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. CATALOG PRODUCT MATCHED MODAL (STATE 2) -->
+  <div id="catalogProductModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="w-full max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl sm:rounded-2xl p-5 shadow-elevated border border-surface-border dark:border-surface-borderDark space-y-4">
+      <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
+        <span class="material-symbols-outlined text-[28px]">verified</span>
+      </div>
+      <div class="text-center">
+        <h3 class="font-bold text-base text-slate-900 dark:text-white">FMCG Catalog Matched!</h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Recognized in Bangladesh Master Catalog, ready to stock on your shelf.</p>
+        
+        <div id="catalog-match-preview" class="mt-3 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-3 text-left">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <div class="space-y-2 pt-2">
+        <button onclick="onboardFromCatalogModal()" class="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-tactile active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[18px]">add_task</span>
+          <span>Auto-fill & Stock on Shelf</span>
+        </button>
+        <button onclick="toggleModal('catalogProductModal', false)" class="w-full h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs active:scale-95">
+          Scan Another Item
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. UNKNOWN PRODUCT SCANNED MODAL (STATE 3) -->
+  <div id="unknownProductModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="w-full max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl sm:rounded-2xl p-5 shadow-elevated border border-surface-border dark:border-surface-borderDark space-y-4">
+      <div class="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+        <span class="material-symbols-outlined text-[28px]">search_off</span>
+      </div>
+      <div class="text-center">
+        <h3 class="font-bold text-base text-slate-900 dark:text-white">Unknown Product Scanned</h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">This barcode is not recognized in your store inventory or the FMCG master catalog.</p>
+        <div class="mt-2 inline-block px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg font-mono text-xs text-blue-600 dark:text-blue-400 font-semibold" id="unknown-barcode-display">
+          8941999888123
+        </div>
+      </div>
+
+      <div class="space-y-2 pt-2">
+        <button onclick="createProductFromUnknown()" class="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-tactile active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[18px]">add_box</span>
+          <span>Add Product with this Barcode</span>
+        </button>
+        <button onclick="toggleModal('unknownProductModal', false)" class="w-full h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs active:scale-95">
+          Scan Another Item
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. SHOPPING CART DRAWER / BOTTOM SHEET -->
+  <div id="cartDrawer" class="hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-xs flex justify-end">
+    <div class="w-full max-w-md bg-surface dark:bg-surface-dark h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
+      
+      <!-- Cart Header -->
+      <div class="h-14 px-4 border-b border-surface-border dark:border-surface-borderDark flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-blue-600 text-[22px]">shopping_cart</span>
+          <h2 class="font-bold text-sm text-slate-900 dark:text-white">Active Sale Basket</h2>
+          <span id="cart-drawer-count" class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-mono text-xs font-bold">0</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <button onclick="clearCart()" class="text-xs text-rose-600 hover:text-rose-700 font-semibold px-2 py-1">Clear</button>
+          <button onclick="toggleCartDrawer(false)" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Customer Selector in Cart -->
+      <div class="p-3 bg-slate-50 dark:bg-slate-900 border-b border-surface-border dark:border-surface-borderDark">
+        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Customer / Khata Account</label>
+        <div class="flex gap-2">
+          <select id="cart-customer-select" onchange="onCartCustomerChange()" class="flex-1 h-10 px-2.5 rounded-xl bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-xs font-semibold focus:outline-none dark:text-white">
+            <option value="walkin">Walk-in Cash Customer (No Credit)</option>
+            <option value="cust_1" selected>Rafiqul Islam (Due: ৳2,450)</option>
+            <option value="cust_2">Tanvir Ahmed (Due: ৳0.00)</option>
+            <option value="cust_3">Nasreen Akter (Due: ৳620)</option>
+            <option value="cust_4">Mohammad Faruk (Due: ৳1,850)</option>
+          </select>
+          <button onclick="openAddCustomerModal()" class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 flex items-center justify-center shrink-0" title="Add Customer">
+            <span class="material-symbols-outlined text-[18px]">person_add</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cart Itemized List -->
+      <div id="cart-items-container" class="flex-1 overflow-y-auto p-3 space-y-2">
+        <!-- Dynamically rendered cart rows -->
+      </div>
+
+      <!-- Cart Summary Footer -->
+      <div class="p-4 bg-surface dark:bg-surface-dark border-t border-surface-border dark:border-surface-borderDark space-y-2.5 shrink-0 shadow-lg">
+        <div class="space-y-1 text-xs">
+          <div class="flex justify-between text-slate-500">
+            <span>Subtotal</span>
+            <span id="cart-subtotal" class="font-mono font-semibold text-slate-800 dark:text-slate-200">৳0.00</span>
+          </div>
+          <div class="flex justify-between text-slate-500 items-center">
+            <span>Discount (ছাড়)</span>
+            <div class="flex items-center gap-1">
+              <span class="text-rose-600 font-mono">-৳</span>
+              <input id="cart-discount-input" oninput="updateCartTotals()" type="number" value="20" min="0" class="w-16 h-7 text-right px-1.5 rounded border border-surface-border dark:border-surface-borderDark text-xs font-mono font-bold dark:bg-surface-dark dark:text-white" />
+            </div>
+          </div>
+          <div class="flex justify-between text-sm font-bold text-slate-900 dark:text-white pt-1 border-t border-surface-border dark:border-surface-borderDark">
+            <span>Grand Total</span>
+            <span id="cart-grand-total" class="font-display text-xl text-blue-600 dark:text-blue-400">৳0.00</span>
+          </div>
+        </div>
+
+        <button onclick="openPaymentModal()" class="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-tactile active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[18px]">payments</span>
+          <span>Proceed to Payment (টাকা গ্রহণ)</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 4. CHECKOUT & SPLIT PAYMENT MODAL -->
+  <div id="paymentModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="w-full max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl sm:rounded-2xl p-5 shadow-elevated border border-surface-border dark:border-surface-borderDark space-y-4 max-h-[92vh] overflow-y-auto">
+      
+      <!-- Payment Modal Header -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="font-bold text-sm text-slate-900 dark:text-white">Confirm Payment & Checkout</h2>
+          <p id="pay-customer-subtitle" class="text-xs text-slate-500">Customer: Rafiqul Islam (Credit Limit ৳5,000)</p>
+        </div>
+        <button onclick="toggleModal('paymentModal', false)" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Total Amount Banner -->
+      <div class="rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 p-3.5 text-center">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">Total Order Amount</span>
+        <div id="pay-total-display" class="font-display text-3xl font-bold text-blue-600 dark:text-blue-400 mt-0.5">৳370</div>
+      </div>
+
+      <!-- Payment Method Mode Selector (Cash / Partial / Credit) -->
+      <div class="space-y-1.5">
+        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Select Payment Method</label>
+        <div class="grid grid-cols-3 gap-2 text-xs font-semibold">
+          <button onclick="setPaymentType('cash')" id="pay-method-cash" class="py-2.5 px-2 rounded-xl bg-emerald-600 text-white flex flex-col items-center gap-1 shadow-sm active:scale-95 transition-all">
+            <span class="material-symbols-outlined text-[18px]">payments</span>
+            <span>Full Cash</span>
+          </button>
+          <button onclick="setPaymentType('partial')" id="pay-method-partial" class="py-2.5 px-2 rounded-xl bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-700 dark:text-slate-200 flex flex-col items-center gap-1 active:scale-95 transition-all">
+            <span class="material-symbols-outlined text-[18px]">pie_chart</span>
+            <span>Partial Pay</span>
+          </button>
+          <button onclick="setPaymentType('credit')" id="pay-method-credit" class="py-2.5 px-2 rounded-xl bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-700 dark:text-slate-200 flex flex-col items-center gap-1 active:scale-95 transition-all">
+            <span class="material-symbols-outlined text-[18px]">receipt_long</span>
+            <span>Credit (বাকি)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cash Received Input & Preset Buttons (When Cash or Partial) -->
+      <div id="cash-input-section" class="space-y-2">
+        <div class="flex items-center justify-between text-xs">
+          <label class="font-bold text-slate-700 dark:text-slate-300">Amount Paid (নগদ গ্রহণ)</label>
+          <span id="remaining-credit-note" class="text-rose-600 font-semibold font-mono text-[11px]">Due to Khata: ৳170</span>
+        </div>
+
+        <div class="relative">
+          <span class="absolute left-3.5 top-2.5 font-display text-lg text-slate-400">৳</span>
+          <input id="pay-cash-input" oninput="onCashInputChanged()" type="number" value="200" class="w-full h-12 pl-9 pr-3 rounded-xl bg-slate-50 dark:bg-slate-900 border-2 border-emerald-500 font-display text-xl font-bold text-slate-900 dark:text-white focus:outline-none" />
+        </div>
+
+        <!-- Rapid Taka Presets -->
+        <div class="grid grid-cols-4 gap-1.5 text-xs font-mono font-bold">
+          <button onclick="setCashPreset('exact')" class="py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200">Exact</button>
+          <button onclick="addCashPreset(100)" class="py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200">+৳100</button>
+          <button onclick="addCashPreset(500)" class="py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200">+৳500</button>
+          <button onclick="addCashPreset(1000)" class="py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200">+৳1000</button>
+        </div>
+      </div>
+
+      <!-- Customer Post-Balance Gauge -->
+      <div id="customer-balance-gauge" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark text-xs space-y-1">
+        <div class="flex justify-between text-slate-500">
+          <span>Previous Khata Due</span>
+          <span class="font-mono font-semibold" id="gauge-prev-balance">৳2,450</span>
+        </div>
+        <div class="flex justify-between text-rose-600 font-semibold">
+          <span>New Due Added</span>
+          <span class="font-mono" id="gauge-added-due">+৳170</span>
+        </div>
+        <div class="flex justify-between font-bold text-slate-900 dark:text-white pt-1 border-t border-slate-200 dark:border-slate-800">
+          <span>New Outstanding Balance</span>
+          <span class="font-mono text-sm text-rose-600 dark:text-rose-400" id="gauge-new-balance">৳2,620</span>
+        </div>
+      </div>
+
+      <!-- Action Confirmation Button -->
+      <button onclick="completeCheckoutTransaction()" class="w-full h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-tactile active:scale-95 transition-all">
+        <span class="material-symbols-outlined text-[20px]">check_circle</span>
+        <span id="complete-pay-btn-label">Confirm & Print Memo (৳200 Paid)</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- 5. THERMAL RECEIPT / CASH MEMO MODAL (Matches user prompt exact spec) -->
+  <div id="receiptModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 overflow-y-auto">
+    <div class="w-full max-w-sm bg-white text-slate-900 rounded-3xl p-5 shadow-2xl relative space-y-4 my-auto border border-slate-200 animate-in zoom-in-95 duration-150">
+      
+      <!-- Modal Close Button -->
+      <button onclick="toggleModal('receiptModal', false)" class="absolute right-4 top-4 w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200">
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+
+      <!-- PRINTABLE THERMAL RECEIPT BODY -->
+      <div id="printable-receipt" class="font-mono text-xs text-slate-800 space-y-3">
+        <!-- Header -->
+        <div class="text-center space-y-0.5">
+          <div class="font-bold text-sm tracking-wide font-sans">BHAI BHAI GENERAL STORE</div>
+          <div class="text-[10px] text-slate-500">Road 4, Mirpur 10, Dhaka</div>
+          <div class="text-[10px] text-slate-500">Tel: +880 1812-345678</div>
+          <div class="text-[9px] text-slate-400 uppercase tracking-widest pt-1">*** OFFICIAL CASH MEMO ***</div>
+        </div>
+
+        <div class="text-[10px] border-b border-dashed border-slate-300 pb-1.5 flex justify-between text-slate-500">
+          <span id="rec-order-id">Order #1085</span>
+          <span id="rec-date-time">28 Sep 2026, 03:50 PM</span>
+        </div>
+
+        <div class="text-[10px] text-slate-600">
+          <span>Customer: </span><span id="rec-customer-name" class="font-bold">Rafiqul Islam</span>
+        </div>
+
+        <!-- EXACT ITEMS LIST FROM USER PROMPT -->
+        <div class="border-b border-t border-dashed border-slate-300 py-2 space-y-1">
+          <div id="rec-items-list" class="space-y-1">
+            <div class="flex justify-between">
+              <span>Milk × 2</span>
+              <span>৳160</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Bread × 1</span>
+              <span>৳80</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Egg × 12</span>
+              <span>৳150</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CALCULATION BREAKDOWN (Exact prompt match) -->
+        <div class="space-y-1 pt-1 border-b border-dashed border-slate-300 pb-2">
+          <div class="flex justify-between text-slate-600">
+            <span>Subtotal</span>
+            <span id="rec-subtotal">৳390</span>
+          </div>
+          <div class="flex justify-between text-rose-600">
+            <span>Discount</span>
+            <span id="rec-discount">-৳20</span>
+          </div>
+          <div class="flex justify-between font-bold text-sm text-slate-950 pt-1 border-t border-slate-200">
+            <span>Total</span>
+            <span id="rec-total">৳370</span>
+          </div>
+          <div class="flex justify-between font-semibold text-emerald-700">
+            <span>Paid</span>
+            <span id="rec-paid">৳200</span>
+          </div>
+          <div class="flex justify-between font-semibold text-rose-700">
+            <span>Remaining</span>
+            <span id="rec-remaining">৳170</span>
+          </div>
+        </div>
+
+        <!-- Footer Notice -->
+        <div class="text-center text-[10px] text-slate-500 space-y-1">
+          <div class="font-sans font-semibold">ধন্যবাদ, আবার আসবেন!</div>
+          <div class="text-[8px] text-slate-400">Powered by FMCG+ Retail Engine</div>
+          <!-- Barcode Graphic -->
+          <div class="pt-1 flex justify-center">
+            <span class="material-symbols-outlined text-4xl text-slate-800">barcode</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons (Print / Share / New Sale) -->
+      <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+        <button onclick="window.print()" class="h-10 rounded-xl bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-1 active:scale-95 shadow-sm">
+          <span class="material-symbols-outlined text-[16px]">print</span>
+          <span>Print Memo</span>
+        </button>
+        <button onclick="shareReceiptWhatsApp()" class="h-10 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1 active:scale-95 shadow-sm">
+          <span class="material-symbols-outlined text-[16px]">share</span>
+          <span>WhatsApp</span>
+        </button>
+        <button onclick="toggleModal('receiptModal', false); switchTab('sell');" class="col-span-2 h-10 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center gap-1 active:scale-95">
+          <span>+ New Sale</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 6. ADD PRODUCT MODAL (Supports Barcode Optional & Non-barcode items) -->
+  <div id="addProductModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="w-full max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl sm:rounded-2xl p-5 shadow-elevated border border-surface-border dark:border-surface-borderDark space-y-3.5 max-h-[92vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center">
+            <span class="material-symbols-outlined text-[20px]">add_box</span>
+          </div>
+          <h2 class="font-bold text-sm text-slate-900 dark:text-white">Add New Product</h2>
+        </div>
+        <button onclick="toggleModal('addProductModal', false)" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <form id="add-product-form" onsubmit="handleProductCreation(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Product Name *</label>
+          <input required id="new-prod-name" type="text" placeholder="e.g. Radhuni Turmeric Powder" class="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark text-xs font-semibold focus:ring-2 focus:ring-blue-600 focus:outline-none dark:text-white" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Category *</label>
+            <select id="new-prod-category" class="w-full h-10 px-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark text-xs font-semibold dark:text-white">
+              <option value="Food">Food (মুদি)</option>
+              <option value="Beverages">Beverages</option>
+              <option value="Household">Household</option>
+              <option value="Personal Care">Personal Care</option>
+              <option value="Baby Products">Baby Products</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Unit *</label>
+            <select id="new-prod-unit" class="w-full h-10 px-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark text-xs font-semibold dark:text-white">
+              <option value="pcs">Pieces (pcs)</option>
+              <option value="kg">Kilogram (kg)</option>
+              <option value="g">Gram (g)</option>
+              <option value="L">Litre (L)</option>
+              <option value="ml">Millilitre (ml)</option>
+              <option value="dozen">Dozen</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Barcode (Explicitly Optional) -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Barcode <span class="text-[10px] text-slate-400 font-normal">(Optional)</span>
+            </label>
+            <input id="new-prod-barcode" type="text" placeholder="EAN-13 code" class="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark font-mono text-xs dark:text-white" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Custom SKU <span class="text-[10px] text-slate-400 font-normal">(Optional)</span>
+            </label>
+            <input id="new-prod-sku" type="text" placeholder="FD-SPICE-01" class="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark font-mono text-xs dark:text-white" />
+          </div>
+        </div>
+
+        <!-- Pricing & Stock -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Purchase Price (৳)</label>
+            <input required id="new-prod-cost" type="number" placeholder="Cost" class="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark font-mono text-xs dark:text-white" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Selling Price (৳) *</label>
+            <input required id="new-prod-price" type="number" placeholder="MRP" class="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark font-mono text-xs font-bold text-blue-600 dark:text-blue-400" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Opening Stock *</label>
+            <input required id="new-prod-stock" type="number" value="12" class="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark font-mono text-xs dark:text-white" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Low-Stock Alert Min</label>
+            <input required id="new-prod-min" type="number" value="5" class="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark font-mono text-xs dark:text-white" />
+          </div>
+        </div>
+
+        <button type="submit" class="w-full h-12 mt-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-tactile active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[18px]">save</span>
+          <span>Save & Add to Catalog</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 7. STOCK ADJUSTMENT MODAL -->
+  <div id="adjustStockModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="w-full max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl sm:rounded-2xl p-5 shadow-elevated border border-surface-border dark:border-surface-borderDark space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="font-bold text-sm text-slate-900 dark:text-white">Adjust Stock Level</h2>
+          <p id="adjust-prod-title" class="text-xs text-slate-500">Aarong Dairy Pure Liquid Milk 1L</p>
+        </div>
+        <button onclick="toggleModal('adjustStockModal', false)" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Adjustment Reason</label>
+          <select id="adjust-reason" class="w-full h-10 px-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark text-xs font-semibold dark:text-white">
+            <option value="restock">New Stock Inward (+ Restock)</option>
+            <option value="damaged">Damaged / Spoiled (- Loss)</option>
+            <option value="return">Customer Return (+ Restock)</option>
+            <option value="correction">Audit Correction (+/-)</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 items-center">
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Current Stock</label>
+            <div id="adjust-current-stock" class="h-10 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 font-mono font-bold flex items-center dark:text-white">4 pcs</div>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Adjust Quantity</label>
+            <input id="adjust-qty-input" type="number" value="10" min="1" class="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark font-mono font-bold text-xs dark:text-white" />
+          </div>
+        </div>
+
+        <button onclick="confirmStockAdjustment()" class="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1 active:scale-95 shadow-tactile transition-all">
+          <span class="material-symbols-outlined text-[18px]">check</span>
+          <span>Apply Stock Adjustment</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. CUSTOMER PROFILE & RUNNING KHATA LEDGER MODAL -->
+  <div id="customerProfileModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="w-full max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl sm:rounded-2xl p-5 shadow-elevated border border-surface-border dark:border-surface-borderDark space-y-4 max-h-[92vh] overflow-y-auto">
+      
+      <!-- Profile Header -->
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div id="prof-avatar" class="w-11 h-11 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-sm shadow-sm">RI</div>
+          <div>
+            <h2 id="prof-name" class="font-bold text-sm text-slate-900 dark:text-white">Rafiqul Islam</h2>
+            <div id="prof-phone" class="text-xs text-slate-500 font-mono">01711-234567</div>
+          </div>
+        </div>
+        <button onclick="toggleModal('customerProfileModal', false)" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <!-- Prominent Outstanding Balance Card -->
+      <div id="prof-balance-card" class="rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 p-4 text-center">
+        <div class="flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">
+          <span class="material-symbols-outlined text-[14px]">warning</span>
+          <span id="prof-warning-badge">Overdue 3 Days • Due 15 Nov</span>
+        </div>
+        <div class="text-[11px] text-slate-500 mt-1 uppercase font-semibold">Total Outstanding Balance (বাকি)</div>
+        <div id="prof-balance-display" class="font-display text-3xl font-bold text-rose-700 dark:text-rose-400 mt-0.5">৳2,450</div>
+        
+        <!-- Dual Tactile Actions: Take Payment / Give Credit -->
+        <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-rose-200/60 dark:border-rose-900/60">
+          <button onclick="openRecordKhataPaymentModal()" class="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1 active:scale-95 shadow-sm">
+            <span class="material-symbols-outlined text-[16px]">payments</span>
+            <span>Take Payment / জমা</span>
+          </button>
+          <button onclick="shareWhatsAppReminder()" class="h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold text-xs flex items-center justify-center gap-1 active:scale-95">
+            <span class="material-symbols-outlined text-[16px]">chat</span>
+            <span>Reminder SMS</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Chronological Running Ledger -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+          <span>Khata History & Running Balance</span>
+          <span class="text-[10px] text-slate-400 font-mono">Real-time</span>
+        </div>
+
+        <div id="prof-transactions-list" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+          <!-- Dynamically populated ledger transactions with running balance -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 9. ADD CUSTOMER MODAL -->
+  <div id="addCustomerModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="w-full max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl sm:rounded-2xl p-5 shadow-elevated border border-surface-border dark:border-surface-borderDark space-y-3.5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center">
+            <span class="material-symbols-outlined text-[20px]">person_add</span>
+          </div>
+          <h2 class="font-bold text-sm text-slate-900 dark:text-white">Add New Customer Khata</h2>
+        </div>
+        <button onclick="toggleModal('addCustomerModal', false)" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <form onsubmit="handleCustomerCreation(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Customer Full Name *</label>
+          <input required id="new-cust-name" type="text" placeholder="e.g. Habibur Rahman" class="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark text-xs font-semibold focus:ring-2 focus:ring-blue-600 focus:outline-none dark:text-white" />
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Mobile Number (Phone / WhatsApp) *</label>
+          <input required id="new-cust-phone" type="tel" placeholder="017XX-XXXXXX" class="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark font-mono text-xs dark:text-white" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Credit Limit (৳)</label>
+            <input id="new-cust-limit" type="number" value="5000" class="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark font-mono text-xs dark:text-white" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Starting Due (৳)</label>
+            <input id="new-cust-starting" type="number" value="0" class="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-surface-border dark:border-surface-borderDark font-mono text-xs dark:text-white" />
+          </div>
+        </div>
+
+        <button type="submit" class="w-full h-11 mt-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1 shadow-tactile active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-[18px]">check</span>
+          <span>Create Customer Account</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 10. UI STATE SHOWCASE JUMP MODAL -->
+  <div id="statePickerModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-surface dark:bg-surface-dark rounded-3xl p-5 shadow-2xl border border-surface-border dark:border-surface-borderDark space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-amber-500 text-[18px]">tune</span>
+          <span>UI State Demonstration</span>
+        </h3>
+        <button onclick="toggleModal('statePickerModal', false)" class="w-7 h-7 rounded-lg text-slate-400">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+      <p class="text-xs text-slate-500">Jump directly to any specific requirement state:</p>
+
+      <div class="grid grid-cols-1 gap-1.5 text-xs font-semibold">
+        <button onclick="jumpState('normal')" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-left hover:bg-blue-50 dark:hover:bg-blue-950 flex items-center justify-between">
+          <span>🟢 Normal Loaded State</span>
+          <span class="text-[10px] text-slate-400">Dashboard & POS</span>
+        </button>
+        <button onclick="jumpState('empty_cart')" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-left hover:bg-blue-50 dark:hover:bg-blue-950 flex items-center justify-between">
+          <span>🛒 Empty Cart State</span>
+          <span class="text-[10px] text-slate-400">POS Drawer</span>
+        </button>
+        <button onclick="jumpState('empty_search')" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-left hover:bg-blue-50 dark:hover:bg-blue-950 flex items-center justify-between">
+          <span>🔍 Empty Search State</span>
+          <span class="text-[10px] text-slate-400">Product Not Found</span>
+        </button>
+        <button onclick="jumpState('unknown_barcode')" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-left hover:bg-blue-50 dark:hover:bg-blue-950 flex items-center justify-between">
+          <span>📷 Unknown Barcode Modal</span>
+          <span class="text-[10px] text-slate-400">After Scan</span>
+        </button>
+        <button onclick="jumpState('low_stock')" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-left hover:bg-blue-50 dark:hover:bg-blue-950 flex items-center justify-between">
+          <span>⚠️ Low-Stock Warnings</span>
+          <span class="text-[10px] text-slate-400">Inventory Filter</span>
+        </button>
+        <button onclick="jumpState('customer_due')" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-left hover:bg-blue-50 dark:hover:bg-blue-950 flex items-center justify-between">
+          <span>🔴 Customer with Due Balance</span>
+          <span class="text-[10px] text-rose-500">৳2,450 Overdue</span>
+        </button>
+        <button onclick="jumpState('customer_zero')" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-left hover:bg-blue-50 dark:hover:bg-blue-950 flex items-center justify-between">
+          <span>✅ Customer with Zero Balance</span>
+          <span class="text-[10px] text-emerald-500">৳0.00 Settled</span>
+        </button>
+        <button onclick="jumpState('receipt_demo')" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-left hover:bg-blue-50 dark:hover:bg-blue-950 flex items-center justify-between">
+          <span>🧾 Official Receipt (Prompt Spec)</span>
+          <span class="text-[10px] text-blue-500">Order #1085</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none w-full max-w-xs px-3"></div>
+
+  <!-- DATA & APP LOGIC -->
+  <script>
+window.APP_PRODUCTS = [
+  {
+    "id": "prod_1",
+    "name": "Aarong Dairy Pure Liquid Milk",
+    "category": "Food",
+    "brand": "Aarong",
+    "pack": "1 Litre",
+    "unit": "L",
+    "cost": 72,
+    "price": 80,
+    "stock": 4,
+    "min": 5,
+    "barcode": "8941100100011",
+    "sku": "MILK-AAR-1L",
+    "image": "https://images.openfoodfacts.org/images/products/894/110/010/0011/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_2",
+    "name": "All Time Special White Bread",
+    "category": "Food",
+    "brand": "All Time",
+    "pack": "400 g",
+    "unit": "pcs",
+    "cost": 68,
+    "price": 80,
+    "stock": 6,
+    "min": 5,
+    "barcode": "8941100200022",
+    "sku": "BRD-ALL-400G",
+    "image": "https://images.openfoodfacts.org/images/products/894/110/020/0022/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_3",
+    "name": "Kazi Farm Fresh Brown Eggs",
+    "category": "Food",
+    "brand": "Kazi Farms",
+    "pack": "12 Pcs Pack",
+    "unit": "dozen",
+    "cost": 135,
+    "price": 150,
+    "stock": 14,
+    "min": 6,
+    "barcode": "8941100300033",
+    "sku": "EGG-KAZI-12P",
+    "image": "https://images.openfoodfacts.org/images/products/894/110/030/0033/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_4",
+    "name": "Radhuni Falooda Mix",
+    "category": "Food",
+    "brand": "Radhuni",
+    "pack": "250 g",
+    "unit": "g",
+    "cost": 90,
+    "price": 110,
+    "stock": 9,
+    "min": 5,
+    "barcode": "8941100511862",
+    "sku": "FOO-RAD-004",
+    "image": "https://images.openfoodfacts.org/images/products/894/110/051/1862/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_5",
+    "name": "Radhuni Chicken Masala",
+    "category": "Food",
+    "brand": "Radhuni",
+    "pack": "100 g",
+    "unit": "g",
+    "cost": 90,
+    "price": 110,
+    "stock": 18,
+    "min": 5,
+    "barcode": "8941100511282",
+    "sku": "FOO-RAD-005",
+    "image": "https://images.openfoodfacts.org/images/products/894/110/051/1282/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_6",
+    "name": "Radhuni Biryani Masala",
+    "category": "Food",
+    "brand": "Radhuni",
+    "pack": "40 g",
+    "unit": "g",
+    "cost": 90,
+    "price": 110,
+    "stock": 3,
+    "min": 5,
+    "barcode": "8941100511374",
+    "sku": "FOO-RAD-006",
+    "image": "https://images.openfoodfacts.org/images/products/894/110/051/1374/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_7",
+    "name": "Radhuni Haleem Mix",
+    "category": "Food",
+    "brand": "Radhuni",
+    "pack": "200 g",
+    "unit": "g",
+    "cost": 90,
+    "price": 110,
+    "stock": 18,
+    "min": 5,
+    "barcode": "8941100511725",
+    "sku": "FOO-RAD-007",
+    "image": "https://images.openfoodfacts.org/images/products/894/110/051/1725/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_8",
+    "name": "Radhuni Kasundi Mustard Sauce",
+    "category": "Food",
+    "brand": "Radhuni",
+    "pack": "525 ml",
+    "unit": "ml",
+    "cost": 90,
+    "price": 110,
+    "stock": 9,
+    "min": 5,
+    "barcode": "8941100511824",
+    "sku": "FOO-RAD-008",
+    "image": "https://images.openfoodfacts.org/images/products/894/110/051/1824/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_9",
+    "name": "Radhuni Kabab Masala",
+    "category": "Food",
+    "brand": "Radhuni",
+    "pack": "50 g",
+    "unit": "g",
+    "cost": 90,
+    "price": 110,
+    "stock": 3,
+    "min": 5,
+    "barcode": "8941100511060",
+    "sku": "FOO-RAD-009",
+    "image": "https://images.openfoodfacts.org/images/products/894/110/051/1060/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_10",
+    "name": "Radhuni Roast Spices",
+    "category": "Food",
+    "brand": "Radhuni",
+    "pack": "35 g",
+    "unit": "g",
+    "cost": 90,
+    "price": 110,
+    "stock": 9,
+    "min": 5,
+    "barcode": "8941100511206",
+    "sku": "FOO-RAD-010",
+    "image": "https://images.openfoodfacts.org/images/products/894/110/051/1206/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_11",
+    "name": "Maggi Shaad-e-Magic Seasoning",
+    "category": "Food",
+    "brand": "Maggi",
+    "pack": "4 g",
+    "unit": "g",
+    "cost": 90,
+    "price": 110,
+    "stock": 18,
+    "min": 5,
+    "barcode": "8941100295670",
+    "sku": "FOO-MAG-011",
+    "image": "https://images.openfoodfacts.org/images/products/894/110/029/5670/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_12",
+    "name": "Maggi Healthy Soups Corn with Chicken Flavor",
+    "category": "Food",
+    "brand": "Maggi",
+    "pack": "25 g",
+    "unit": "g",
+    "cost": 90,
+    "price": 110,
+    "stock": 3,
+    "min": 5,
+    "barcode": "8941100295878",
+    "sku": "FOO-MAG-012",
+    "image": "https://images.openfoodfacts.org/images/products/894/110/029/5878/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_13",
+    "name": "Pran Hot Tomato Sauce Sachet",
+    "category": "Food",
+    "brand": "PRAN",
+    "pack": "8 g",
+    "unit": "g",
+    "cost": 90,
+    "price": 110,
+    "stock": 18,
+    "min": 5,
+    "barcode": "0831730009472",
+    "sku": "FOO-PRA-013",
+    "image": "https://images.openfoodfacts.org/images/products/083/173/000/9472/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_14",
+    "name": "Mojo Carbonated Beverage",
+    "category": "Beverages",
+    "brand": "Mojo",
+    "pack": "250 ml",
+    "unit": "ml",
+    "cost": 32,
+    "price": 40,
+    "stock": 9,
+    "min": 5,
+    "barcode": "8941189600044",
+    "sku": "BEV-MOJ-014",
+    "image": "https://images.openfoodfacts.org/images/products/894/118/960/0044/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_15",
+    "name": "Mojo Carbonated Beverage",
+    "category": "Beverages",
+    "brand": "Mojo",
+    "pack": "500 ml",
+    "unit": "ml",
+    "cost": 32,
+    "price": 40,
+    "stock": 18,
+    "min": 5,
+    "barcode": "8941189600068",
+    "sku": "BEV-MOJ-015",
+    "image": "https://images.openfoodfacts.org/images/products/894/118/960/0068/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_16",
+    "name": "Clemon Clear Lime Drink",
+    "category": "Beverages",
+    "brand": "Clemon",
+    "pack": "250 ml",
+    "unit": "ml",
+    "cost": 32,
+    "price": 40,
+    "stock": 3,
+    "min": 5,
+    "barcode": "8941189600112",
+    "sku": "BEV-CLE-016",
+    "image": "https://images.openfoodfacts.org/images/products/894/118/960/0112/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_17",
+    "name": "Clemon Clear Lime Drink",
+    "category": "Beverages",
+    "brand": "Clemon",
+    "pack": "1 L",
+    "unit": "L",
+    "cost": 32,
+    "price": 40,
+    "stock": 18,
+    "min": 5,
+    "barcode": "8941189600150",
+    "sku": "BEV-CLE-017",
+    "image": "https://images.openfoodfacts.org/images/products/894/118/960/0150/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_18",
+    "name": "Pran Up Carbonated Drink",
+    "category": "Beverages",
+    "brand": "PRAN Up",
+    "pack": "250 ml",
+    "unit": "ml",
+    "cost": 32,
+    "price": 40,
+    "stock": 9,
+    "min": 5,
+    "barcode": "831730001186",
+    "sku": "BEV-PRA-018",
+    "image": ""
+  },
+  {
+    "id": "prod_19",
+    "name": "Pran Up Carbonated Drink",
+    "category": "Beverages",
+    "brand": "PRAN Up",
+    "pack": "400 ml",
+    "unit": "ml",
+    "cost": 32,
+    "price": 40,
+    "stock": 3,
+    "min": 5,
+    "barcode": "841165103546",
+    "sku": "BEV-PRA-019",
+    "image": ""
+  },
+  {
+    "id": "prod_20",
+    "name": "Pran Up Carbonated Drink",
+    "category": "Beverages",
+    "brand": "PRAN Up",
+    "pack": "500 ml",
+    "unit": "ml",
+    "cost": 32,
+    "price": 40,
+    "stock": 9,
+    "min": 5,
+    "barcode": "831730001483",
+    "sku": "BEV-PRA-020",
+    "image": ""
+  },
+  {
+    "id": "prod_21",
+    "name": "Dettol Antiseptic Disinfectant Liquid",
+    "category": "Personal Care",
+    "brand": "Dettol",
+    "pack": "500 ml",
+    "unit": "ml",
+    "cost": 118,
+    "price": 145,
+    "stock": 9,
+    "min": 5,
+    "barcode": "8901396353003",
+    "sku": "PER-DET-021",
+    "image": ""
+  },
+  {
+    "id": "prod_22",
+    "name": "Sunsilk Shampoo Onion",
+    "category": "Personal Care",
+    "brand": "Sunsilk",
+    "pack": "375 ml",
+    "unit": "ml",
+    "cost": 118,
+    "price": 145,
+    "stock": 18,
+    "min": 5,
+    "barcode": "8941102464807",
+    "sku": "PER-SUN-022",
+    "image": "https://images.openfoodfacts.org/images/products/894/110/246/4807/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_23",
+    "name": "Parachute 100% Pure Coconut Oil",
+    "category": "Personal Care",
+    "brand": "Parachute",
+    "pack": "50 ml",
+    "unit": "ml",
+    "cost": 118,
+    "price": 145,
+    "stock": 3,
+    "min": 5,
+    "barcode": "8901088019613",
+    "sku": "PER-PAR-023",
+    "image": ""
+  },
+  {
+    "id": "prod_24",
+    "name": "Parachute 100% Pure Coconut Oil",
+    "category": "Personal Care",
+    "brand": "Parachute",
+    "pack": "100 ml",
+    "unit": "ml",
+    "cost": 118,
+    "price": 145,
+    "stock": 18,
+    "min": 5,
+    "barcode": "8901088047043",
+    "sku": "PER-PAR-024",
+    "image": ""
+  },
+  {
+    "id": "prod_25",
+    "name": "Parachute 100% Pure Coconut Oil",
+    "category": "Personal Care",
+    "brand": "Parachute",
+    "pack": "200 ml",
+    "unit": "ml",
+    "cost": 118,
+    "price": 145,
+    "stock": 9,
+    "min": 5,
+    "barcode": "8901088000345",
+    "sku": "PER-PAR-025",
+    "image": ""
+  },
+  {
+    "id": "prod_26",
+    "name": "Wheel Laundry Soap",
+    "category": "Household",
+    "brand": "Wheel",
+    "pack": "125 g",
+    "unit": "g",
+    "cost": 69,
+    "price": 85,
+    "stock": 9,
+    "min": 5,
+    "barcode": "8941102314447",
+    "sku": "HOU-WHE-026",
+    "image": "https://images.openproductsfacts.org/images/products/894/110/231/4447/front_en.3.400.jpg"
+  },
+  {
+    "id": "prod_27",
+    "name": "Surf Excel Detergent Bar",
+    "category": "Household",
+    "brand": "Surf Excel",
+    "pack": "84 g",
+    "unit": "g",
+    "cost": 69,
+    "price": 85,
+    "stock": 18,
+    "min": 5,
+    "barcode": "8901030875908",
+    "sku": "HOU-SUR-027",
+    "image": ""
+  },
+  {
+    "id": "prod_28",
+    "name": "Surf Excel Detergent Bar",
+    "category": "Household",
+    "brand": "Surf Excel",
+    "pack": "400 g",
+    "unit": "g",
+    "cost": 69,
+    "price": 85,
+    "stock": 3,
+    "min": 5,
+    "barcode": "8901030843143",
+    "sku": "HOU-SUR-028",
+    "image": ""
+  },
+  {
+    "id": "prod_29",
+    "name": "Rin Detergent Bar",
+    "category": "Household",
+    "brand": "Rin",
+    "pack": "250 g",
+    "unit": "g",
+    "cost": 69,
+    "price": 85,
+    "stock": 18,
+    "min": 5,
+    "barcode": "8901030848063",
+    "sku": "HOU-RIN-029",
+    "image": ""
+  },
+  {
+    "id": "prod_30",
+    "name": "ACI Supreme Washing Powder",
+    "category": "Household",
+    "brand": "ACI Supreme",
+    "pack": "22 g",
+    "unit": "g",
+    "cost": 69,
+    "price": 85,
+    "stock": 9,
+    "min": 5,
+    "barcode": "8941196244019",
+    "sku": "HOU-ACI-030",
+    "image": ""
+  },
+  {
+    "id": "prod_31",
+    "name": "ACI Supreme Washing Powder",
+    "category": "Household",
+    "brand": "ACI Supreme",
+    "pack": "200 g",
+    "unit": "g",
+    "cost": 69,
+    "price": 85,
+    "stock": 3,
+    "min": 5,
+    "barcode": "8941196244026",
+    "sku": "HOU-ACI-031",
+    "image": ""
+  },
+  {
+    "id": "prod_32",
+    "name": "Twinkle Baby Soap",
+    "category": "Baby Products",
+    "brand": "Twinkle",
+    "pack": "75 g",
+    "unit": "g",
+    "cost": 188,
+    "price": 230,
+    "stock": 9,
+    "min": 5,
+    "barcode": "8941196203528",
+    "sku": "BAB-TWI-032",
+    "image": ""
+  },
+  {
+    "id": "prod_33",
+    "name": "Parachute Just for Baby Face Cream",
+    "category": "Baby Products",
+    "brand": "Parachute Just for Baby",
+    "pack": "50 g",
+    "unit": "g",
+    "cost": 188,
+    "price": 230,
+    "stock": 18,
+    "min": 5,
+    "barcode": "8941174010834",
+    "sku": "BAB-PAR-033",
+    "image": ""
+  },
+  {
+    "id": "prod_34",
+    "name": "Parachute Just for Baby Milky Glow Lotion",
+    "category": "Baby Products",
+    "brand": "Parachute Just for Baby",
+    "pack": "100 ml",
+    "unit": "ml",
+    "cost": 188,
+    "price": 230,
+    "stock": 3,
+    "min": 5,
+    "barcode": "8941174011329",
+    "sku": "BAB-PAR-034",
+    "image": ""
+  },
+  {
+    "id": "prod_35",
+    "name": "Parachute Just for Baby Milky Glow Lotion",
+    "category": "Baby Products",
+    "brand": "Parachute Just for Baby",
+    "pack": "200 ml",
+    "unit": "ml",
+    "cost": 188,
+    "price": 230,
+    "stock": 18,
+    "min": 5,
+    "barcode": "8941174011336",
+    "sku": "BAB-PAR-035",
+    "image": ""
+  }
+];
+window.APP_CUSTOMERS = [
+  {
+    "id": "cust_1",
+    "name": "Rafiqul Islam",
+    "nameBn": "\u09b0\u09ab\u09bf\u0995\u09c1\u09b2 \u0987\u09b8\u09b2\u09be\u09ae",
+    "phone": "01711-234567",
+    "balance": 2450,
+    "lifetimePurchases": 14890,
+    "creditLimit": 5000,
+    "lastPurchase": "Today, 03:50 PM",
+    "address": "Road 4, Mirpur 10, Dhaka",
+    "status": "warning",
+    "statusLabel": "Overdue 3 Days",
+    "promiseDate": "15 Nov 2026",
+    "transactions": [
+      {
+        "id": "TRX-1085",
+        "date": "Today, 03:50 PM",
+        "type": "sale",
+        "label": "Store Purchase (Order #1085)",
+        "description": "Milk \u00d7 2, Bread \u00d7 1, Egg \u00d7 12",
+        "amount": 370,
+        "paid": 200,
+        "credit": 170,
+        "runningBalance": 2450
+      },
+      {
+        "id": "REC-1084",
+        "date": "10 Nov 2026, 04:15 PM",
+        "type": "payment",
+        "label": "Cash Payment Received",
+        "description": "Paid cash at counter",
+        "amount": 200,
+        "paid": 200,
+        "credit": -200,
+        "runningBalance": 2280
+      },
+      {
+        "id": "TRX-1042",
+        "date": "05 Nov 2026, 08:20 PM",
+        "type": "sale",
+        "label": "Store Purchase (Order #1042)",
+        "description": "Aarong Ghee, Dano Powder",
+        "amount": 940,
+        "paid": 0,
+        "credit": 940,
+        "runningBalance": 2480
+      },
+      {
+        "id": "REC-1020",
+        "date": "01 Nov 2026, 11:30 AM",
+        "type": "payment",
+        "label": "bKash Merchant Pay (Trx: 9K82JD)",
+        "description": "Digital MFS payment received",
+        "amount": 1000,
+        "paid": 1000,
+        "credit": -1000,
+        "runningBalance": 1540
+      },
+      {
+        "id": "TRX-980",
+        "date": "25 Oct 2026, 06:10 PM",
+        "type": "sale",
+        "label": "Store Purchase (Order #980)",
+        "description": "Monthly grocery basket",
+        "amount": 1540,
+        "paid": 0,
+        "credit": 1540,
+        "runningBalance": 2540
+      }
+    ]
+  },
+  {
+    "id": "cust_2",
+    "name": "Tanvir Ahmed",
+    "nameBn": "\u09a4\u09be\u09a8\u09ad\u09c0\u09b0 \u0986\u09b9\u09ae\u09c7\u09a6",
+    "phone": "01819-876543",
+    "balance": 0,
+    "lifetimePurchases": 8920,
+    "creditLimit": 3000,
+    "lastPurchase": "Yesterday",
+    "address": "Section 11, Mirpur, Dhaka",
+    "status": "clear",
+    "statusLabel": "All Dues Cleared",
+    "promiseDate": "None",
+    "transactions": [
+      {
+        "id": "REC-1077",
+        "date": "Yesterday, 06:00 PM",
+        "type": "payment",
+        "label": "Full Settlement via Cash",
+        "description": "Settled remaining balance",
+        "amount": 450,
+        "paid": 450,
+        "credit": -450,
+        "runningBalance": 0
+      }
+    ]
+  },
+  {
+    "id": "cust_3",
+    "name": "Nasreen Akter",
+    "nameBn": "\u09a8\u09be\u09b8\u09b0\u09c0\u09a8 \u0986\u0995\u09cd\u09a4\u09be\u09b0",
+    "phone": "01912-345678",
+    "balance": 620,
+    "lifetimePurchases": 5400,
+    "creditLimit": 4000,
+    "lastPurchase": "26 Sep 2026",
+    "address": "Block C, Mirpur 12, Dhaka",
+    "status": "normal",
+    "statusLabel": "Regular Customer",
+    "promiseDate": "05 Oct 2026",
+    "transactions": [
+      {
+        "id": "TRX-1065",
+        "date": "26 Sep 2026, 05:15 PM",
+        "type": "sale",
+        "label": "Store Purchase",
+        "description": "Oil, Rice, Soap",
+        "amount": 620,
+        "paid": 0,
+        "credit": 620,
+        "runningBalance": 620
+      }
+    ]
+  },
+  {
+    "id": "cust_4",
+    "name": "Mohammad Faruk",
+    "nameBn": "\u09ae\u09cb\u09b9\u09be\u09ae\u09cd\u09ae\u09a6 \u09ab\u09be\u09b0\u09c1\u0995",
+    "phone": "01611-987654",
+    "balance": 1850,
+    "lifetimePurchases": 12200,
+    "creditLimit": 5000,
+    "lastPurchase": "21 Sep 2026",
+    "address": "Pallabi, Mirpur, Dhaka",
+    "status": "warning",
+    "statusLabel": "Overdue 7 Days",
+    "promiseDate": "25 Sep 2026",
+    "transactions": [
+      {
+        "id": "TRX-1030",
+        "date": "21 Sep 2026",
+        "type": "sale",
+        "label": "Groceries",
+        "description": "Flour, Sugar, Tea",
+        "amount": 1850,
+        "paid": 0,
+        "credit": 1850,
+        "runningBalance": 1850
+      }
+    ]
+  }
+];
+
+</script>
+  <script>
+    // Audio Context for authentic POS Beep
+    let audioCtx = null;
+    function playPOSBeep() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1400, audioCtx.currentTime); // 1.4kHz crisp POS beep
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.08);
+      } catch (e) {
+        console.log("Audio feedback not supported or blocked", e);
+      }
+    }
+
+    // App State Management
+    const state = {
+      userType: 'shopkeeper', // 'shopkeeper' | 'customer'
+      activeTab: 'dashboard',
+      isOnline: true,
+      offlineQueue: [],
+      darkMode: false,
+      isFluidViewport: false,
+      activeCategory: 'All',
+      inventoryFilter: 'all',
+      customerFilter: 'all',
+      cart: [
+        // Default initialized with the user prompt exact items!
+        { id: 'prod_1', product: APP_PRODUCTS[0], qty: 2, discount: 0 }, // Milk x 2 = 160
+        { id: 'prod_2', product: APP_PRODUCTS[1], qty: 1, discount: 0 }, // Bread x 1 = 80
+        { id: 'prod_3', product: APP_PRODUCTS[2], qty: 12, discount: 0 } // Egg x 12 = 150
+      ],
+      cartDiscount: 20, // Prompt discount -20 -> Total 370
+      selectedCustomer: APP_CUSTOMERS[0], // Rafiqul Islam
+      paymentType: 'partial',
+      cashReceived: 200,
+      activeProductForAdjust: null
+    };
+
+    // Pre-configured Demo Receipt Data
+    const demoReceiptData = {
+      orderId: 'TRX-1085',
+      dateTime: '28 Sep 2026, 03:50 PM',
+      customerName: 'Rafiqul Islam',
+      items: [
+        { name: 'Milk × 2', price: 160 },
+        { name: 'Bread × 1', price: 80 },
+        { name: 'Egg × 12', price: 150 }
+      ],
+      subtotal: 390,
+      discount: 20,
+      total: 370,
+      paid: 200,
+      remaining: 170
+    };
+
+    // Initialize App
+    window.addEventListener('DOMContentLoaded', () => {
+      updateClock();
+      setInterval(updateClock, 30000);
+      renderDashboard();
+      renderPOSCatalog();
+      renderInventoryList();
+      renderCustomersList();
+      updateCartBadge();
+    });
+
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('device-time').textContent = timeStr;
+    }
+
+    // User Type Switcher
+    function switchUserType(type) {
+      state.userType = type;
+      if (type === 'shopkeeper') {
+        document.getElementById('shopkeeper-view').classList.remove('hidden');
+        document.getElementById('customer-view').classList.add('hidden');
+        document.getElementById('role-shopkeeper-btn').className = "px-2.5 py-1 rounded-md font-semibold text-white bg-blue-600 shadow-sm transition-all flex items-center gap-1";
+        document.getElementById('role-customer-btn').className = "px-2.5 py-1 rounded-md font-medium text-slate-400 hover:text-white transition-all flex items-center gap-1";
+        showToast("Switched to Shopkeeper POS mode", "info");
+      } else {
+        document.getElementById('shopkeeper-view').classList.add('hidden');
+        document.getElementById('customer-view').classList.remove('hidden');
+        document.getElementById('role-customer-btn').className = "px-2.5 py-1 rounded-md font-semibold text-white bg-emerald-600 shadow-sm transition-all flex items-center gap-1";
+        document.getElementById('role-shopkeeper-btn').className = "px-2.5 py-1 rounded-md font-medium text-slate-400 hover:text-white transition-all flex items-center gap-1";
+        showToast("Switched to Customer App (Rafiqul Islam)", "info");
+      }
+    }
+
+    // Navigation Tab Switcher
+    function switchTab(tabId) {
+      state.activeTab = tabId;
+      const tabs = ['dashboard', 'sell', 'inventory', 'customers', 'settings'];
+      tabs.forEach(t => {
+        const el = document.getElementById(`tab-${t}`);
+        const btn = document.getElementById(`nav-btn-${t}`);
+        if (el) el.classList.toggle('hidden', t !== tabId);
+        if (btn) {
+          if (t === tabId) {
+            btn.className = "nav-tab-btn flex-1 py-1 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 active:scale-95 transition-all";
+          } else {
+            btn.className = "nav-tab-btn flex-1 py-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-800 active:scale-95 transition-all";
+          }
+        }
+      });
+
+      // Show/Hide Docked Cart bar
+      const dockedCart = document.getElementById('docked-cart-bar');
+      if (tabId === 'sell' && state.cart.length > 0) {
+        dockedCart.classList.remove('hidden');
+      } else {
+        dockedCart.classList.add('hidden');
+      }
+    }
+
+    // Render Dashboard
+    function renderDashboard() {
+      const container = document.getElementById('recent-sales-list');
+      if (!container) return;
+      
+      const recent = [
+        { id: '1085', customer: 'Rafiqul Islam', items: 'Milk, Bread, Egg', total: 370, paid: 200, due: 170, time: '3m ago', status: 'partial' },
+        { id: '1084', customer: 'Walk-in Cash', items: 'Mojo 500ml × 2, Chips', total: 95, paid: 95, due: 0, time: '22m ago', status: 'paid' },
+        { id: '1083', customer: 'Nasreen Akter', items: 'ACI Pure Salt, Atta', total: 240, paid: 0, due: 240, time: '1h ago', status: 'credit' }
+      ];
+
+      container.innerHTML = recent.map(r => `
+        <div onclick="openReceiptModal(demoReceiptData)" class="bg-surface dark:bg-surface-dark p-3 rounded-xl border border-surface-border dark:border-surface-borderDark flex items-center justify-between shadow-sm active:scale-95 transition-transform cursor-pointer">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg ${r.status === 'paid' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950' : (r.status === 'partial' ? 'bg-amber-100 text-amber-600 dark:bg-amber-950' : 'bg-rose-100 text-rose-600 dark:bg-rose-950')} flex items-center justify-center font-bold text-xs">
+              <span class="material-symbols-outlined text-[18px]">${r.status === 'paid' ? 'check' : (r.status === 'partial' ? 'pie_chart' : 'receipt_long')}</span>
+            </div>
+            <div>
+              <div class="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>#${r.id} • ${r.customer}</span>
+                <span class="text-[10px] text-slate-400 font-normal">(${r.time})</span>
+              </div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[180px]">${r.items}</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="font-display font-bold text-xs text-slate-900 dark:text-white">৳${r.total}</div>
+            <span class="text-[10px] font-bold ${r.status === 'paid' ? 'text-emerald-600' : (r.status === 'partial' ? 'text-amber-600' : 'text-rose-600')}">
+              ${r.status === 'paid' ? 'Paid Full' : (r.status === 'partial' ? `Due ৳${r.due}` : '100% Khata')}
+            </span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Render POS Product Catalog
+    function renderPOSCatalog() {
+      const grid = document.getElementById('pos-product-grid');
+      if (!grid) return;
+      
+      const search = (document.getElementById('pos-search-input')?.value || '').toLowerCase().trim();
+      
+      const filtered = APP_PRODUCTS.filter(p => {
+        const matchCat = state.activeCategory === 'All' || p.category === state.activeCategory;
+        const matchSearch = !search || 
+          p.name.toLowerCase().includes(search) || 
+          (p.barcode && p.barcode.includes(search)) || 
+          (p.sku && p.sku.toLowerCase().includes(search)) ||
+          p.brand.toLowerCase().includes(search);
+        return matchCat && matchSearch;
+      });
+
+      const emptyEl = document.getElementById('pos-empty-search');
+      if (filtered.length === 0) {
+        grid.innerHTML = '';
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        return;
+      }
+      if (emptyEl) emptyEl.classList.add('hidden');
+
+      grid.innerHTML = filtered.map(p => {
+        const isLow = p.stock <= p.min;
+        return `
+          <div class="bg-surface dark:bg-surface-dark rounded-xl border border-surface-border dark:border-surface-borderDark p-3 flex flex-col justify-between shadow-sm relative group">
+            <div>
+              <div class="flex items-start justify-between gap-1 mb-1">
+                <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 truncate">
+                  ${p.brand || p.category}
+                </span>
+                <span class="text-[10px] font-mono px-1 rounded ${isLow ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 font-bold' : 'text-slate-400'}">
+                  ${p.stock} left
+                </span>
+              </div>
+              <h3 class="font-bold text-xs text-slate-900 dark:text-white leading-tight line-clamp-2" title="${p.name}">
+                ${p.name}
+              </h3>
+              <div class="text-[10px] text-slate-400 mt-0.5">${p.pack}</div>
+            </div>
+
+            <div class="mt-3 pt-2 border-t border-surface-border dark:border-surface-borderDark flex items-center justify-between">
+              <div>
+                <span class="text-[10px] text-slate-400 leading-none block">Price</span>
+                <span class="font-display font-bold text-sm text-slate-900 dark:text-white">৳${p.price}</span>
+              </div>
+              <button onclick="addToCart('${p.id}')" class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 active:scale-90 transition-all shadow-sm" title="Add to Cart">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Filter Categories
+    function filterCategory(cat) {
+      state.activeCategory = cat;
+      document.querySelectorAll('.cat-pill').forEach(btn => {
+        if (btn.dataset.cat === cat) {
+          btn.className = "cat-pill px-3 py-1.5 rounded-full bg-blue-600 text-white font-semibold shrink-0 shadow-sm transition-all";
+        } else {
+          btn.className = "cat-pill px-3 py-1.5 rounded-full bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-600 dark:text-slate-300 font-medium shrink-0";
+        }
+      });
+      renderPOSCatalog();
+    }
+
+    function filterPOSProducts() {
+      const val = document.getElementById('pos-search-input').value;
+      document.getElementById('pos-search-clear').classList.toggle('hidden', !val);
+      renderPOSCatalog();
+    }
+
+    function clearPOSSearch() {
+      document.getElementById('pos-search-input').value = '';
+      document.getElementById('pos-search-clear').classList.add('hidden');
+      renderPOSCatalog();
+    }
+
+    // Cart Management
+    function addToCart(productId) {
+      playPOSBeep();
+      const prod = APP_PRODUCTS.find(p => p.id === productId);
+      if (!prod) return;
+
+      const existing = state.cart.find(item => item.id === productId);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        state.cart.push({ id: prod.id, product: prod, qty: 1, discount: 0 });
+      }
+
+      updateCartBadge();
+      renderCartDrawer();
+      showToast(`Added ${prod.name.slice(0, 20)}...`, "success");
+    }
+
+    function updateCartQty(productId, delta) {
+      const idx = state.cart.findIndex(i => i.id === productId);
+      if (idx !== -1) {
+        state.cart[idx].qty += delta;
+        if (state.cart[idx].qty <= 0) {
+          state.cart.splice(idx, 1);
+        }
+      }
+      updateCartBadge();
+      renderCartDrawer();
+    }
+
+    function clearCart() {
+      state.cart = [];
+      updateCartBadge();
+      renderCartDrawer();
+      showToast("Cart cleared", "info");
+    }
+
+    function updateCartBadge() {
+      const totalCount = state.cart.reduce((sum, i) => sum + i.qty, 0);
+      const badge = document.getElementById('header-cart-badge');
+      const drawerCount = document.getElementById('cart-drawer-count');
+      const dockedCount = document.getElementById('docked-cart-count');
+      const dockedBar = document.getElementById('docked-cart-bar');
+
+      if (badge) {
+        badge.textContent = totalCount;
+        badge.classList.toggle('hidden', totalCount === 0);
+      }
+      if (drawerCount) drawerCount.textContent = totalCount;
+      if (dockedCount) dockedCount.textContent = totalCount;
+
+      if (dockedBar && state.activeTab === 'sell') {
+        dockedBar.classList.toggle('hidden', totalCount === 0);
+      }
+      updateCartTotals();
+    }
+
+    function updateCartTotals() {
+      let subtotal = 0;
+      state.cart.forEach(item => {
+        subtotal += item.product.price * item.qty;
+      });
+
+      const discountInput = document.getElementById('cart-discount-input');
+      const discount = discountInput ? Number(discountInput.value) || 0 : state.cartDiscount;
+      state.cartDiscount = discount;
+
+      const grandTotal = Math.max(0, subtotal - discount);
+
+      if (document.getElementById('cart-subtotal')) {
+        document.getElementById('cart-subtotal').textContent = `৳${subtotal.toFixed(0)}`;
+      }
+      if (document.getElementById('cart-grand-total')) {
+        document.getElementById('cart-grand-total').textContent = `৳${grandTotal.toFixed(0)}`;
+      }
+      if (document.getElementById('docked-cart-total')) {
+        document.getElementById('docked-cart-total').textContent = `৳${grandTotal.toFixed(0)}`;
+      }
+    }
+
+    function toggleCartDrawer(open) {
+      const drawer = document.getElementById('cartDrawer');
+      if (!drawer) return;
+      if (open) {
+        renderCartDrawer();
+        drawer.classList.remove('hidden');
+      } else {
+        drawer.classList.add('hidden');
+      }
+    }
+
+    function renderCartDrawer() {
+      const container = document.getElementById('cart-items-container');
+      if (!container) return;
+
+      if (state.cart.length === 0) {
+        container.innerHTML = `
+          <div class="py-16 text-center text-slate-400">
+            <span class="material-symbols-outlined text-4xl mb-2">shopping_basket</span>
+            <p class="text-xs font-semibold">Your shopping basket is empty</p>
+            <p class="text-[11px] text-slate-500 mt-1">Scan a barcode or tap products from the catalog</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = state.cart.map(item => `
+        <div class="bg-surface dark:bg-surface-dark p-3 rounded-xl border border-surface-border dark:border-surface-borderDark flex items-center justify-between shadow-sm">
+          <div class="flex-1 pr-2">
+            <h4 class="font-bold text-xs text-slate-900 dark:text-white leading-tight truncate">${item.product.name}</h4>
+            <div class="text-[10px] text-slate-400 font-mono mt-0.5">৳${item.product.price} / ${item.product.unit}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="flex items-center border border-surface-border dark:border-surface-borderDark rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-900">
+              <button onclick="updateCartQty('${item.id}', -1)" class="w-7 h-7 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200">-</button>
+              <span class="w-8 text-center font-mono font-bold text-xs text-slate-900 dark:text-white">${item.qty}</span>
+              <button onclick="updateCartQty('${item.id}', 1)" class="w-7 h-7 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-200">+</button>
+            </div>
+            <div class="w-14 text-right font-mono font-bold text-xs text-slate-900 dark:text-white">
+              ৳${item.product.price * item.qty}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function onCartCustomerChange() {
+      const select = document.getElementById('cart-customer-select');
+      if (!select) return;
+      const val = select.value;
+      if (val === 'walkin') {
+        state.selectedCustomer = null;
+      } else {
+        state.selectedCustomer = APP_CUSTOMERS.find(c => c.id === val) || null;
+      }
+    }
+
+    // Checkout & Payment Modal
+    function openPaymentModal() {
+      toggleCartDrawer(false);
+      
+      let subtotal = 0;
+      state.cart.forEach(item => subtotal += item.product.price * item.qty);
+      const total = Math.max(0, subtotal - state.cartDiscount);
+
+      document.getElementById('pay-total-display').textContent = `৳${total}`;
+      
+      // Update customer subtitle
+      const subtitle = document.getElementById('pay-customer-subtitle');
+      if (state.selectedCustomer) {
+        subtitle.textContent = `Customer: ${state.selectedCustomer.name} (Khata Limit ৳${state.selectedCustomer.creditLimit})`;
+      } else {
+        subtitle.textContent = "Customer: Walk-in Cash Customer (No Khata Credit Allowed)";
+      }
+
+      setPaymentType('partial');
+      toggleModal('paymentModal', true);
+    }
+
+    function setPaymentType(type) {
+      state.paymentType = type;
+      const cashBtn = document.getElementById('pay-method-cash');
+      const partialBtn = document.getElementById('pay-method-partial');
+      const creditBtn = document.getElementById('pay-method-credit');
+      const cashSection = document.getElementById('cash-input-section');
+      const gauge = document.getElementById('customer-balance-gauge');
+
+      [cashBtn, partialBtn, creditBtn].forEach(b => {
+        b.className = "py-2.5 px-2 rounded-xl bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-700 dark:text-slate-200 flex flex-col items-center gap-1 active:scale-95 transition-all";
+      });
+
+      let subtotal = 0;
+      state.cart.forEach(item => subtotal += item.product.price * item.qty);
+      const total = Math.max(0, subtotal - state.cartDiscount);
+
+      if (type === 'cash') {
+        cashBtn.className = "py-2.5 px-2 rounded-xl bg-emerald-600 text-white flex flex-col items-center gap-1 shadow-sm active:scale-95 transition-all";
+        cashSection.classList.remove('hidden');
+        gauge.classList.add('hidden');
+        document.getElementById('pay-cash-input').value = total;
+        state.cashReceived = total;
+        document.getElementById('remaining-credit-note').textContent = "Full payment settled";
+        document.getElementById('complete-pay-btn-label').textContent = `Confirm & Print Memo (৳${total} Full Paid)`;
+      } else if (type === 'partial') {
+        partialBtn.className = "py-2.5 px-2 rounded-xl bg-blue-600 text-white flex flex-col items-center gap-1 shadow-sm active:scale-95 transition-all";
+        cashSection.classList.remove('hidden');
+        gauge.classList.remove('hidden');
+        document.getElementById('pay-cash-input').value = 200; // demo preset
+        state.cashReceived = 200;
+        onCashInputChanged();
+      } else { // credit
+        creditBtn.className = "py-2.5 px-2 rounded-xl bg-rose-600 text-white flex flex-col items-center gap-1 shadow-sm active:scale-95 transition-all";
+        cashSection.classList.add('hidden');
+        gauge.classList.remove('hidden');
+        state.cashReceived = 0;
+        updateCustomerGauge(0, total);
+        document.getElementById('complete-pay-btn-label').textContent = `Confirm Order on Credit (100% Khata)`;
+      }
+    }
+
+    function onCashInputChanged() {
+      const input = document.getElementById('pay-cash-input');
+      const cash = Number(input.value) || 0;
+      state.cashReceived = cash;
+
+      let subtotal = 0;
+      state.cart.forEach(item => subtotal += item.product.price * item.qty);
+      const total = Math.max(0, subtotal - state.cartDiscount);
+      const remainingDue = Math.max(0, total - cash);
+
+      document.getElementById('remaining-credit-note').textContent = `Due to Khata: ৳${remainingDue}`;
+      document.getElementById('complete-pay-btn-label').textContent = `Confirm & Print Memo (৳${cash} Paid)`;
+      updateCustomerGauge(cash, remainingDue);
+    }
+
+    function setCashPreset(type) {
+      let subtotal = 0;
+      state.cart.forEach(item => subtotal += item.product.price * item.qty);
+      const total = Math.max(0, subtotal - state.cartDiscount);
+      if (type === 'exact') {
+        document.getElementById('pay-cash-input').value = total;
+      }
+      onCashInputChanged();
+    }
+
+    function addCashPreset(amount) {
+      const current = Number(document.getElementById('pay-cash-input').value) || 0;
+      document.getElementById('pay-cash-input').value = current + amount;
+      onCashInputChanged();
+    }
+
+    function updateCustomerGauge(paid, remainingDue) {
+      const prev = state.selectedCustomer ? state.selectedCustomer.balance : 0;
+      document.getElementById('gauge-prev-balance').textContent = `৳${prev}`;
+      document.getElementById('gauge-added-due').textContent = `+৳${remainingDue}`;
+      document.getElementById('gauge-new-balance').textContent = `৳${prev + remainingDue}`;
+    }
+
+    function completeCheckoutTransaction() {
+      playPOSBeep();
+      toggleModal('paymentModal', false);
+
+      let subtotal = 0;
+      state.cart.forEach(item => subtotal += item.product.price * item.qty);
+      const total = Math.max(0, subtotal - state.cartDiscount);
+      const paid = Math.min(total, state.cashReceived);
+      const remaining = Math.max(0, total - paid);
+
+      // If customer selected and remaining due > 0, update customer ledger
+      if (state.selectedCustomer && remaining > 0) {
+        state.selectedCustomer.balance += remaining;
+        state.selectedCustomer.transactions.unshift({
+          id: `TRX-${Math.floor(1000 + Math.random() * 9000)}`,
+          date: 'Just now',
+          type: 'sale',
+          label: `Store Purchase`,
+          description: state.cart.map(i => `${i.product.name} × ${i.qty}`).join(', '),
+          amount: total,
+          paid: paid,
+          credit: remaining,
+          runningBalance: state.selectedCustomer.balance
+        });
+      }
+
+      // Check if offline
+      if (!state.isOnline) {
+        state.offlineQueue.push({ total, paid, remaining, time: new Date() });
+        document.getElementById('offline-queue-badge').textContent = `${state.offlineQueue.length} Queued`;
+        showToast("Sale recorded locally (Offline Queue)", "info");
+      } else {
+        showToast("Transaction completed successfully! ৳" + paid + " received", "success");
+      }
+
+      // Open Receipt Screen
+      const receiptData = {
+        orderId: `TRX-${Math.floor(1000 + Math.random() * 9000)}`,
+        dateTime: new Date().toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }),
+        customerName: state.selectedCustomer ? state.selectedCustomer.name : 'Walk-in Cash Customer',
+        items: state.cart.map(i => ({ name: `${i.product.name} × ${i.qty}`, price: i.product.price * i.qty })),
+        subtotal: subtotal,
+        discount: state.cartDiscount,
+        total: total,
+        paid: paid,
+        remaining: remaining
+      };
+
+      // Reset Cart
+      state.cart = [];
+      updateCartBadge();
+
+      openReceiptModal(receiptData);
+    }
+
+    // Receipt Modal Renderer
+    function openReceiptModal(data) {
+      document.getElementById('rec-order-id').textContent = data.orderId || 'Order #1085';
+      document.getElementById('rec-date-time').textContent = data.dateTime || '28 Sep 2026, 03:50 PM';
+      document.getElementById('rec-customer-name').textContent = data.customerName || 'Rafiqul Islam';
+
+      const itemsContainer = document.getElementById('rec-items-list');
+      if (itemsContainer && data.items) {
+        itemsContainer.innerHTML = data.items.map(it => `
+          <div class="flex justify-between">
+            <span>${it.name}</span>
+            <span>৳${it.price}</span>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('rec-subtotal').textContent = `৳${data.subtotal}`;
+      document.getElementById('rec-discount').textContent = `-৳${data.discount}`;
+      document.getElementById('rec-total').textContent = `৳${data.total}`;
+      document.getElementById('rec-paid').textContent = `৳${data.paid}`;
+      document.getElementById('rec-remaining').textContent = `৳${data.remaining}`;
+
+      toggleModal('receiptModal', true);
+    }
+
+    function shareReceiptWhatsApp() {
+      const text = encodeURIComponent("Bhai Bhai General Store\nOrder #1085\nTotal: ৳370, Paid: ৳200, Remaining Due: ৳170\nThank you for shopping with us!");
+      window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+    }
+
+    // Barcode Scanner Camera Simulation
+    function openBarcodeScanner() {
+      toggleModal('barcodeScannerModal', true);
+    }
+
+    function closeBarcodeScanner() {
+      toggleModal('barcodeScannerModal', false);
+    }
+
+    function toggleTorch() {
+      const btn = document.getElementById('scanner-torch-btn');
+      btn.classList.toggle('bg-amber-400');
+      btn.classList.toggle('text-slate-900');
+      showToast("Torch toggled", "info");
+    }
+
+    let currentCatalogMatch = null;
+
+    function simulateScanBarcode(barcode) {
+      playPOSBeep();
+      closeBarcodeScanner();
+
+      // State 1: Store Shelf Inventory (is_stocked === true)
+      const storeProduct = APP_PRODUCTS.find(p => p.barcode === barcode && p.is_stocked !== false);
+      if (storeProduct) {
+        addToCart(storeProduct.id);
+        switchTab('sell');
+        showToast(`Added to basket: ${storeProduct.name}`, "success");
+        return;
+      }
+
+      // State 2: Canonical Master FMCG Catalog
+      const masterProduct = (window.APP_MASTER_CATALOG || []).find(p => p.barcode === barcode) ||
+                            APP_PRODUCTS.find(p => p.barcode === barcode);
+      if (masterProduct) {
+        currentCatalogMatch = masterProduct;
+        const preview = document.getElementById('catalog-match-preview');
+        if (preview) {
+          preview.innerHTML = `
+            <img src="${masterProduct.image_url || masterProduct.image || 'https://images.openfoodfacts.org/images/products/894/110/051/1862/front_en.3.400.jpg'}" class="w-12 h-12 rounded-lg object-cover bg-slate-200 dark:bg-slate-700 shrink-0" onerror="this.src='https://placehold.co/100x100?text=FMCG'" />
+            <div class="flex-1 min-w-0">
+              <div class="font-bold text-xs text-slate-900 dark:text-white truncate">${masterProduct.product_name || masterProduct.name}</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400">Brand: ${masterProduct.brand} • ${masterProduct.pack_size || masterProduct.pack}</div>
+              <div class="text-xs font-bold text-blue-600 dark:text-blue-400 mt-0.5">Suggested MRP: ৳${masterProduct.suggested_mrp || masterProduct.price}</div>
+            </div>
+          `;
+        }
+        toggleModal('catalogProductModal', true);
+        return;
+      }
+
+      // State 3: Unknown barcode flow
+      document.getElementById('unknown-barcode-display').textContent = barcode;
+      toggleModal('unknownProductModal', true);
+    }
+
+    function onboardFromCatalogModal() {
+      if (!currentCatalogMatch) return;
+      toggleModal('catalogProductModal', false);
+      openAddProductModal(currentCatalogMatch.barcode, currentCatalogMatch);
+    }
+
+    function createProductFromUnknown() {
+      const barcode = document.getElementById('unknown-barcode-display').textContent.trim();
+      toggleModal('unknownProductModal', false);
+      openAddProductModal(barcode);
+    }
+
+    // Inventory List & Modals
+    function renderInventoryList() {
+      const container = document.getElementById('inventory-list');
+      if (!container) return;
+
+      const search = (document.getElementById('inv-search-input')?.value || '').toLowerCase().trim();
+
+      const filtered = APP_PRODUCTS.filter(p => {
+        const matchSearch = !search || p.name.toLowerCase().includes(search) || (p.barcode && p.barcode.includes(search));
+        if (state.inventoryFilter === 'low') return matchSearch && p.stock <= p.min;
+        if (state.inventoryFilter === 'out') return matchSearch && p.stock === 0;
+        return matchSearch;
+      });
+
+      container.innerHTML = filtered.map(p => {
+        const isLow = p.stock <= p.min;
+        return `
+          <div class="bg-surface dark:bg-surface-dark p-3 rounded-xl border border-surface-border dark:border-surface-borderDark shadow-sm flex items-center justify-between">
+            <div class="flex-1 pr-2">
+              <div class="flex items-center gap-1.5 mb-0.5">
+                <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">${p.category}</span>
+                <span class="text-[10px] font-mono text-slate-400">${p.barcode || p.sku || 'No Barcode'}</span>
+              </div>
+              <h4 class="font-bold text-xs text-slate-900 dark:text-white leading-tight">${p.name}</h4>
+              <div class="flex items-center gap-2 mt-1 text-[11px]">
+                <span class="font-bold text-blue-600 dark:text-blue-400 font-display">৳${p.price}</span>
+                <span class="text-slate-400">Cost: ৳${p.cost}</span>
+              </div>
+            </div>
+
+            <div class="flex flex-col items-end gap-1.5 shrink-0">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isLow ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'}">
+                ${p.stock} ${p.unit} left
+              </span>
+              <button onclick="openStockAdjustModal('${p.id}')" class="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-[10px] font-bold hover:bg-slate-200 active:scale-95">
+                Adjust Stock
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function setInventoryStockFilter(type) {
+      state.inventoryFilter = type;
+      ['all', 'low', 'out'].forEach(t => {
+        const btn = document.getElementById(`inv-filter-${t}`);
+        if (btn) {
+          if (t === type) {
+            btn.className = "px-2.5 py-1 rounded-full bg-blue-600 text-white font-semibold";
+          } else {
+            btn.className = "px-2.5 py-1 rounded-full bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-600 dark:text-slate-300 font-medium";
+          }
+        }
+      });
+      renderInventoryList();
+    }
+
+    function filterInventoryProducts() {
+      renderInventoryList();
+    }
+
+    function openAddProductModal(prefilledBarcode = '', masterItem = null) {
+      const barcodeInput = document.getElementById('new-prod-barcode');
+      if (barcodeInput) barcodeInput.value = prefilledBarcode;
+
+      if (masterItem) {
+        if (document.getElementById('new-prod-name')) {
+          document.getElementById('new-prod-name').value = masterItem.product_name || masterItem.name || '';
+        }
+        if (document.getElementById('new-prod-sku')) {
+          document.getElementById('new-prod-sku').value = masterItem.sku || '';
+        }
+        if (document.getElementById('new-prod-price')) {
+          document.getElementById('new-prod-price').value = masterItem.suggested_mrp || masterItem.price || '';
+        }
+        if (document.getElementById('new-prod-cost')) {
+          document.getElementById('new-prod-cost').value = masterItem.suggested_cost || masterItem.cost || '';
+        }
+        if (document.getElementById('new-prod-category') && masterItem.category) {
+          document.getElementById('new-prod-category').value = masterItem.category;
+        }
+        if (document.getElementById('new-prod-unit') && masterItem.unit) {
+          document.getElementById('new-prod-unit').value = masterItem.unit;
+        }
+      }
+
+      toggleModal('addProductModal', true);
+    }
+
+    function handleProductCreation(e) {
+      e.preventDefault();
+      const name = document.getElementById('new-prod-name').value;
+      const cat = document.getElementById('new-prod-category').value;
+      const unit = document.getElementById('new-prod-unit').value;
+      const barcode = document.getElementById('new-prod-barcode').value;
+      const sku = document.getElementById('new-prod-sku').value || `SKU-${Date.now().toString().slice(-4)}`;
+      const cost = Number(document.getElementById('new-prod-cost').value) || 0;
+      const price = Number(document.getElementById('new-prod-price').value) || 0;
+      const stock = Number(document.getElementById('new-prod-stock').value) || 10;
+      const min = Number(document.getElementById('new-prod-min').value) || 5;
+
+      const newProd = {
+        id: `prod_${APP_PRODUCTS.length + 1}`,
+        name: name,
+        category: cat,
+        brand: 'Store Brand',
+        pack: `1 ${unit}`,
+        unit: unit,
+        cost: cost,
+        price: price,
+        stock: stock,
+        min: min,
+        barcode: barcode,
+        sku: sku
+      };
+
+      APP_PRODUCTS.unshift(newProd);
+      toggleModal('addProductModal', false);
+      renderPOSCatalog();
+      renderInventoryList();
+      showToast(`Product "${name}" added to inventory!`, "success");
+    }
+
+    function openStockAdjustModal(prodId) {
+      const prod = APP_PRODUCTS.find(p => p.id === prodId);
+      if (!prod) return;
+      state.activeProductForAdjust = prod;
+      document.getElementById('adjust-prod-title').textContent = prod.name;
+      document.getElementById('adjust-current-stock').textContent = `${prod.stock} ${prod.unit}`;
+      toggleModal('adjustStockModal', true);
+    }
+
+    function confirmStockAdjustment() {
+      const prod = state.activeProductForAdjust;
+      if (!prod) return;
+
+      const reason = document.getElementById('adjust-reason').value;
+      const qty = Number(document.getElementById('adjust-qty-input').value) || 0;
+
+      if (reason === 'restock' || reason === 'return') {
+        prod.stock += qty;
+      } else if (reason === 'damaged') {
+        prod.stock = Math.max(0, prod.stock - qty);
+      } else {
+        prod.stock = qty; // correction
+      }
+
+      toggleModal('adjustStockModal', false);
+      renderInventoryList();
+      renderPOSCatalog();
+      showToast(`Stock updated to ${prod.stock} ${prod.unit}`, "success");
+    }
+
+    // Customer Directory & Khata
+    function renderCustomersList() {
+      const container = document.getElementById('customers-list');
+      if (!container) return;
+
+      const search = (document.getElementById('customer-search-input')?.value || '').toLowerCase().trim();
+
+      const filtered = APP_CUSTOMERS.filter(c => {
+        const matchSearch = !search || c.name.toLowerCase().includes(search) || c.phone.includes(search);
+        if (state.customerFilter === 'due') return matchSearch && c.balance > 0;
+        if (state.customerFilter === 'zero') return matchSearch && c.balance === 0;
+        return matchSearch;
+      });
+
+      container.innerHTML = filtered.map(c => `
+        <div onclick="openCustomerProfile('${c.id}')" class="bg-surface dark:bg-surface-dark p-3.5 rounded-xl border border-surface-border dark:border-surface-borderDark shadow-sm flex items-center justify-between active:scale-95 transition-all cursor-pointer">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full ${c.balance > 0 ? 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-300' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300'} font-bold flex items-center justify-center text-xs">
+              ${c.name.split(' ').map(n=>n[0]).join('')}
+            </div>
+            <div>
+              <div class="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span>${c.name}</span>
+                ${c.status === 'warning' ? '<span class="text-[9px] px-1 bg-rose-100 dark:bg-rose-900 text-rose-600 rounded">Overdue</span>' : ''}
+              </div>
+              <div class="text-[11px] text-slate-400 font-mono">${c.phone}</div>
+            </div>
+          </div>
+
+          <div class="text-right">
+            <div class="font-display font-bold text-sm ${c.balance > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}">
+              ৳${c.balance.toLocaleString()}
+            </div>
+            <div class="text-[10px] text-slate-400">${c.balance > 0 ? 'Outstanding Due' : 'All Settled'}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterCustomerTab(tab) {
+      state.customerFilter = tab;
+      ['all', 'due', 'zero'].forEach(t => {
+        const btn = document.getElementById(`cust-tab-${t}`);
+        if (btn) {
+          if (t === tab) {
+            btn.className = "px-2.5 py-1 rounded-full bg-blue-600 text-white font-semibold";
+          } else {
+            btn.className = "px-2.5 py-1 rounded-full bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-slate-600 dark:text-slate-300 font-medium";
+          }
+        }
+      });
+      renderCustomersList();
+    }
+
+    function filterCustomerList() {
+      renderCustomersList();
+    }
+
+    function openCustomerProfile(customerId) {
+      const cust = APP_CUSTOMERS.find(c => c.id === customerId);
+      if (!cust) return;
+
+      document.getElementById('prof-name').textContent = `${cust.name} (${cust.nameBn || ''})`;
+      document.getElementById('prof-phone').textContent = cust.phone;
+      document.getElementById('prof-avatar').textContent = cust.name.split(' ').map(n=>n[0]).join('');
+      document.getElementById('prof-balance-display').textContent = `৳${cust.balance.toLocaleString()}`;
+
+      const card = document.getElementById('prof-balance-card');
+      const badge = document.getElementById('prof-warning-badge');
+      if (cust.balance > 0) {
+        card.className = "rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 p-4 text-center";
+        badge.textContent = cust.statusLabel || "Overdue 3 Days";
+        badge.parentElement.classList.remove('hidden');
+      } else {
+        card.className = "rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/60 p-4 text-center";
+        badge.textContent = "All Dues Settled (পরিশোধিত)";
+        badge.parentElement.classList.remove('hidden');
+      }
+
+      // Render chronological running ledger
+      const list = document.getElementById('prof-transactions-list');
+      if (list && cust.transactions) {
+        list.innerHTML = cust.transactions.map(t => `
+          <div class="p-2.5 rounded-xl bg-surface dark:bg-surface-dark border border-surface-border dark:border-surface-borderDark text-xs flex items-center justify-between">
+            <div>
+              <div class="font-bold text-slate-800 dark:text-slate-200">${t.label}</div>
+              <div class="text-[10px] text-slate-400">${t.date} • ${t.description}</div>
+            </div>
+            <div class="text-right font-mono">
+              <div class="font-bold ${t.credit > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+                ${t.credit > 0 ? `+৳${t.credit}` : `-৳${Math.abs(t.credit)}`}
+              </div>
+              <div class="text-[10px] text-slate-400 font-semibold">Bal: ৳${t.runningBalance}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      toggleModal('customerProfileModal', true);
+    }
+
+    function shareWhatsAppReminder() {
+      const text = encodeURIComponent("আসসালামু আলাইকুম রফিকুল ভাই, ভাই ভাই স্টোরে আপনার মোট বাকি ৳২,৪৫০। সময়মতো পরিশোধ করার অনুরোধ করা হচ্ছে। ধন্যবাদ!");
+      window.open(`https://api.whatsapp.com/send?phone=+8801711234567&text=${text}`, '_blank');
+      showToast("WhatsApp reminder draft copied!", "success");
+    }
+
+    function openRecordKhataPaymentModal() {
+      const amount = prompt("Enter payment amount received in Cash/bKash (৳):", "500");
+      if (amount && Number(amount) > 0) {
+        const cust = APP_CUSTOMERS[0];
+        cust.balance = Math.max(0, cust.balance - Number(amount));
+        cust.transactions.unshift({
+          id: `REC-${Date.now().toString().slice(-4)}`,
+          date: 'Just now',
+          type: 'payment',
+          label: 'Cash Payment Received',
+          description: 'Counter Cash Deposit',
+          amount: Number(amount),
+          paid: Number(amount),
+          credit: -Number(amount),
+          runningBalance: cust.balance
+        });
+        openCustomerProfile(cust.id);
+        renderCustomersList();
+        showToast(`৳${amount} payment recorded in Khata!`, "success");
+      }
+    }
+
+    function openAddCustomerModal() {
+      toggleModal('addCustomerModal', true);
+    }
+
+    function handleCustomerCreation(e) {
+      e.preventDefault();
+      const name = document.getElementById('new-cust-name').value;
+      const phone = document.getElementById('new-cust-phone').value;
+      const limit = Number(document.getElementById('new-cust-limit').value) || 5000;
+      const starting = Number(document.getElementById('new-cust-starting').value) || 0;
+
+      const newCust = {
+        id: `cust_${APP_CUSTOMERS.length + 1}`,
+        name: name,
+        phone: phone,
+        balance: starting,
+        lifetimePurchases: starting,
+        creditLimit: limit,
+        lastPurchase: 'Today',
+        status: starting > 0 ? 'warning' : 'clear',
+        statusLabel: starting > 0 ? 'Initial Balance' : 'Zero Balance',
+        transactions: []
+      };
+
+      APP_CUSTOMERS.unshift(newCust);
+      toggleModal('addCustomerModal', false);
+      renderCustomersList();
+      showToast(`Customer "${name}" created!`, "success");
+    }
+
+    // Customer App Simulation
+    function simulateCustomerPayment(amount) {
+      playPOSBeep();
+      showToast("Simulating bKash payment verification...", "info");
+      setTimeout(() => {
+        showToast(`Payment of ৳${amount} completed via bKash Merchant!`, "success");
+      }, 1000);
+    }
+
+    // Global Utility Functions
+    function toggleModal(modalId, show) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.toggle('hidden', !show);
+      }
+    }
+
+    function toggleOfflineMode() {
+      state.isOnline = !state.isOnline;
+      const dot = document.getElementById('network-dot');
+      const text = document.getElementById('network-text');
+      const banner = document.getElementById('offline-banner');
+      const syncLabel = document.getElementById('sync-status-label');
+
+      if (state.isOnline) {
+        dot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+        text.textContent = "Online";
+        banner.classList.add('hidden');
+        syncLabel.textContent = "Synced • Mirpur 10";
+        showToast("Reconnected to FMCG+ cloud network", "success");
+      } else {
+        dot.className = "w-2 h-2 rounded-full bg-amber-500";
+        text.textContent = "Offline";
+        banner.classList.remove('hidden');
+        syncLabel.textContent = "Offline Mode (Local Storage)";
+        showToast("Switched to Offline Mode", "info");
+      }
+    }
+
+    function toggleDarkMode() {
+      state.darkMode = !state.darkMode;
+      document.documentElement.classList.toggle('dark', state.darkMode);
+      document.getElementById('theme-icon').textContent = state.darkMode ? 'light_mode' : 'dark_mode';
+    }
+
+    function toggleViewportFrame() {
+      state.isFluidViewport = !state.isFluidViewport;
+      const container = document.getElementById('device-container');
+      if (state.isFluidViewport) {
+        container.className = "w-full max-w-5xl h-screen bg-surface-canvas dark:bg-surface-canvasDark overflow-hidden flex flex-col relative border-0 transition-all duration-300";
+      } else {
+        container.className = "w-full max-w-md md:h-[860px] md:max-h-[92vh] bg-surface-canvas dark:bg-surface-canvasDark md:rounded-[40px] md:shadow-2xl overflow-hidden flex flex-col relative border-0 md:border-[8px] md:border-slate-800 transition-all duration-300";
+      }
+    }
+
+    function openLowStockFilter() {
+      switchTab('inventory');
+      setInventoryStockFilter('low');
+    }
+
+    function setDashboardPeriod(period) {
+      ['today', 'yesterday', 'week'].forEach(p => {
+        const btn = document.getElementById(`period-${p}`);
+        if (p === period) {
+          btn.className = "px-2.5 py-1 rounded-md bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 font-semibold shadow-sm";
+        } else {
+          btn.className = "px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 font-medium";
+        }
+      });
+      showToast(`Showing metrics for ${period}`, "info");
+    }
+
+    function simulateSync() {
+      showToast("Syncing with central cloud database...", "info");
+      setTimeout(() => {
+        showToast("Database synchronization complete (480 products)", "success");
+      }, 800);
+    }
+
+    // State Showcase Jumper
+    function jumpState(stateType) {
+      toggleModal('statePickerModal', false);
+      switchUserType('shopkeeper');
+
+      if (stateType === 'normal') {
+        switchTab('dashboard');
+        showToast("Loaded normal dashboard state", "info");
+      } else if (stateType === 'empty_cart') {
+        switchTab('sell');
+        clearCart();
+        toggleCartDrawer(true);
+      } else if (stateType === 'empty_search') {
+        switchTab('sell');
+        document.getElementById('pos-search-input').value = 'XYZ NonExistentItem99';
+        filterPOSProducts();
+      } else if (stateType === 'unknown_barcode') {
+        simulateScanBarcode('8941999888123');
+      } else if (stateType === 'low_stock') {
+        switchTab('inventory');
+        setInventoryStockFilter('low');
+      } else if (stateType === 'customer_due') {
+        switchTab('customers');
+        openCustomerProfile('cust_1'); // Rafiqul Islam (৳2,450)
+      } else if (stateType === 'customer_zero') {
+        switchTab('customers');
+        openCustomerProfile('cust_2'); // Tanvir Ahmed (৳0.00)
+      } else if (stateType === 'receipt_demo') {
+        openReceiptModal(demoReceiptData);
+      }
+    }
+
+    // Toast Notification System
+    function showToast(msg, type = "info") {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      const bg = type === 'success' ? 'bg-emerald-600 text-white' : (type === 'error' ? 'bg-rose-600 text-white' : 'bg-slate-900 text-white');
+      const icon = type === 'success' ? 'check_circle' : (type === 'error' ? 'error' : 'info');
+
+      toast.className = `${bg} px-3.5 py-2.5 rounded-xl text-xs font-semibold shadow-elevated flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-150`;
+      toast.innerHTML = `
+        <span class="material-symbols-outlined text-[18px] shrink-0">${icon}</span>
+        <span class="truncate">${msg}</span>
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'transition-opacity');
+        setTimeout(() => toast.remove(), 200);
+      }, 2600);
+    }
+  </script>
+</body>
+</html>

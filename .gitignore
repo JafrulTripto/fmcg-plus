@@ -1,0 +1,111 @@
+# ==============================================================================
+# FMCG+ Project Root .gitignore
+# Covers: Go Backend, Flutter Mobile, Python Data Scripts, Web & OS/Editor Files
+# ==============================================================================
+
+# Operating System & Environment
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE & Editor Files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+*~
+*.bak
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+
+# Logs & Temp Files
+*.log
+logs/
+temp/
+tmp/
+
+# ==============================================================================
+# Python Artifacts
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# ==============================================================================
+# Go Backend Artifacts
+# ==============================================================================
+backend/server
+backend/migrate
+backend/seed
+backend/seeder
+backend/cmd/server/server
+backend/cmd/migrate/migrate
+backend/cmd/seed/seed
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# ==============================================================================
+# Flutter & Dart Artifacts
+# ==============================================================================
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+mobile/.dart_tool/
+mobile/.packages
+mobile/.pub-cache/
+mobile/.pub/
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/ephemeral/
+
+# Android build outputs & local config
+mobile/android/local.properties
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/captures/
+mobile/android/.externalNativeBuild/
+mobile/android/.cxx/
+*.apk
+*.aab
+
+# iOS build outputs & CocoaPods
+mobile/ios/Flutter/Flutter.podspec
+mobile/ios/Flutter/Generated.xcconfig
+mobile/ios/Flutter/app.flx
+mobile/ios/Flutter/app.zip
+mobile/ios/Flutter/flutter_assets/
+mobile/ios/Flutter/flutter_export_environment.sh
+mobile/ios/ServiceDefinitions.json
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+mobile/ios/Flutter/.last_build_id
+*.ipa
