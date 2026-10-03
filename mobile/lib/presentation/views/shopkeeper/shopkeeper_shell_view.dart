@@ -9,8 +9,11 @@ import 'package:mobile/presentation/views/shopkeeper/dashboard_view.dart';
 import 'package:mobile/presentation/views/shopkeeper/sell_pos_view.dart';
 import 'package:mobile/presentation/views/shopkeeper/inventory_view.dart';
 import 'package:mobile/presentation/views/shopkeeper/customers_view.dart';
+import 'package:mobile/presentation/views/customer/customer_portal_view.dart';
 import 'package:mobile/l10n/app_localizations.dart';
 import 'package:mobile/presentation/widgets/app_logo.dart';
+import '../../view_models/notification_view_model.dart';
+import 'package:mobile/data/services/notification_service.dart';
 
 class ShopkeeperShellView extends StatefulWidget {
   const ShopkeeperShellView({super.key});
@@ -21,6 +24,14 @@ class ShopkeeperShellView extends StatefulWidget {
 
 class _ShopkeeperShellViewState extends State<ShopkeeperShellView> {
   int _currentIndex = 1; // Default to Sell POS for rapid transactions
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService().registerToken();
+    });
+  }
 
   List<Widget> get _views => [
     DashboardView(onNavigateTab: (idx) => setState(() => _currentIndex = idx)),
@@ -443,6 +454,17 @@ class _ShopkeeperShellViewState extends State<ShopkeeperShellView> {
   Widget build(BuildContext context) {
     final appMode = context.watch<AppModeViewModel>();
     final auth = context.watch<AuthViewModel>();
+
+    // Route guard: Non-merchants / Customers should never see the shopkeeper shell
+    if (auth.isAuthenticated && auth.isCustomer) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.read<AppModeViewModel>().userType != UserType.customer) {
+          context.read<AppModeViewModel>().setUserType(UserType.customer);
+        }
+      });
+      return const CustomerPortalView();
+    }
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context);
@@ -591,21 +613,27 @@ class _ShopkeeperShellViewState extends State<ShopkeeperShellView> {
             ),
           ),
           // Notification Bell
-          IconButton(
-            tooltip: 'Notifications',
-            icon: Icon(
-              Icons.notifications_none_rounded,
-              size: 22,
-              color: isDark ? AppConstants.textPrimaryDark : null,
+          Badge(
+            isLabelVisible: context.watch<NotificationViewModel>().hasUnread,
+            label: Text('${context.watch<NotificationViewModel>().unreadGroceryCount}'),
+            child: IconButton(
+              tooltip: 'Notifications',
+              icon: Icon(
+                Icons.notifications_none_rounded,
+                size: 22,
+                color: isDark ? AppConstants.textPrimaryDark : null,
+              ),
+              onPressed: () {
+                context.read<NotificationViewModel>().markAllRead();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n?.allEventsSynced ?? 'All cloud events synced and updated'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+                // TODO: Navigate to grocery requests list
+              },
             ),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(l10n?.allEventsSynced ?? 'All cloud events synced and updated'),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            },
           ),
           // User / Profile Button:
           Padding(

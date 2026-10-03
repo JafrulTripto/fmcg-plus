@@ -1135,6 +1135,846 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'OTP Verification'**
   String get otpVerificationTitle;
+
+  /// No description provided for @recordedKhataPurchases.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded credit purchases by shopkeeper.'**
+  String get recordedKhataPurchases;
+
+  /// No description provided for @zeroOutstandingDues.
+  ///
+  /// In en, this message translates to:
+  /// **'You have zero outstanding dues.'**
+  String get zeroOutstandingDues;
+
+  /// No description provided for @allAccountsSettled.
+  ///
+  /// In en, this message translates to:
+  /// **'All accounts settled. Zero due across all stores.'**
+  String get allAccountsSettled;
+
+  /// No description provided for @filterByStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by Store'**
+  String get filterByStore;
+
+  /// No description provided for @allStores.
+  ///
+  /// In en, this message translates to:
+  /// **'All Stores'**
+  String get allStores;
+
+  /// No description provided for @settleStoreBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Settle Store Balance'**
+  String get settleStoreBalance;
+
+  /// No description provided for @selectMfsChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'Select MFS Channel'**
+  String get selectMfsChannel;
+
+  /// No description provided for @mfsGateway.
+  ///
+  /// In en, this message translates to:
+  /// **'MFS Gateway'**
+  String get mfsGateway;
+
+  /// No description provided for @connectingToMfs.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting to payment gateway...'**
+  String get connectingToMfs;
+
+  /// No description provided for @searchLedger.
+  ///
+  /// In en, this message translates to:
+  /// **'Search ledger...'**
+  String get searchLedger;
+
+  /// No description provided for @dueSales.
+  ///
+  /// In en, this message translates to:
+  /// **'Due Sales (+৳)'**
+  String get dueSales;
+
+  /// No description provided for @payments.
+  ///
+  /// In en, this message translates to:
+  /// **'Payments (-৳)'**
+  String get payments;
+
+  /// No description provided for @noKhataLedgerEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'No Khata ledger entries'**
+  String get noKhataLedgerEntries;
+
+  /// No description provided for @noRecordsMatchFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'No records match this filter'**
+  String get noRecordsMatchFilter;
+
+  /// No description provided for @khataLedger.
+  ///
+  /// In en, this message translates to:
+  /// **'Khata Ledger'**
+  String get khataLedger;
+
+  /// No description provided for @totalOutstandingBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'TOTAL OUTSTANDING BALANCE'**
+  String get totalOutstandingBalance;
+
+  /// No description provided for @balanceColon.
+  ///
+  /// In en, this message translates to:
+  /// **'Bal:'**
+  String get balanceColon;
+
+  /// No description provided for @creditPurchase.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit Purchase'**
+  String get creditPurchase;
+
+  /// No description provided for @repayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Repayment'**
+  String get repayment;
+
+  /// No description provided for @connectedStoreLedgerNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Directly synchronized with shopkeeper\'s store ledger.'**
+  String get connectedStoreLedgerNotice;
+
+  /// No description provided for @myConnectedStores.
+  ///
+  /// In en, this message translates to:
+  /// **'My Connected Stores'**
+  String get myConnectedStores;
+
+  /// No description provided for @orderGroceries.
+  ///
+  /// In en, this message translates to:
+  /// **'Order Groceries'**
+  String get orderGroceries;
+
+  /// No description provided for @requestGroceries.
+  ///
+  /// In en, this message translates to:
+  /// **'Request Groceries'**
+  String get requestGroceries;
+
+  /// No description provided for @myOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'My Orders'**
+  String get myOrders;
+
+  /// No description provided for @activeDues.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Dues'**
+  String get activeDues;
+
+  /// No description provided for @settled.
+  ///
+  /// In en, this message translates to:
+  /// **'Settled'**
+  String get settled;
+
+  /// No description provided for @creditLimitWithColon.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit Limit:'**
+  String get creditLimitWithColon;
+
+  /// No description provided for @remainingCreditWithColon.
+  ///
+  /// In en, this message translates to:
+  /// **'Remaining:'**
+  String get remainingCreditWithColon;
+
+  /// No description provided for @noRecentPurchases.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent purchases yet'**
+  String get noRecentPurchases;
+
+  /// No description provided for @memoNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Memo #'**
+  String get memoNumber;
+
+  /// No description provided for @myStore.
+  ///
+  /// In en, this message translates to:
+  /// **'My Store'**
+  String get myStore;
+
+  /// No description provided for @requestGroceryFromStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Request Grocery from Store'**
+  String get requestGroceryFromStore;
+
+  /// No description provided for @availableStoreCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Available Store Catalog'**
+  String get availableStoreCatalog;
+
+  /// No description provided for @deliveryInstructionsOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes / Delivery instructions (Optional)'**
+  String get deliveryInstructionsOptional;
+
+  /// No description provided for @homeDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Home Delivery'**
+  String get homeDelivery;
+
+  /// No description provided for @storePickup.
+  ///
+  /// In en, this message translates to:
+  /// **'Store Pickup'**
+  String get storePickup;
+
+  /// No description provided for @submitGroceryRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit Grocery Request'**
+  String get submitGroceryRequest;
+
+  /// No description provided for @selectStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Store'**
+  String get selectStore;
+
+  /// No description provided for @cartTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Cart Total'**
+  String get cartTotal;
+
+  /// No description provided for @settleBalanceViaMfs.
+  ///
+  /// In en, this message translates to:
+  /// **'Settle Balance via bKash / Nagad'**
+  String get settleBalanceViaMfs;
+
+  /// No description provided for @totalGroceryRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'TOTAL GROCERY REQUESTED'**
+  String get totalGroceryRequested;
+
+  /// No description provided for @newOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'+ New Order'**
+  String get newOrder;
+
+  /// No description provided for @ordersSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders'**
+  String get ordersSuffix;
+
+  /// No description provided for @pendingSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get pendingSuffix;
+
+  /// No description provided for @groceryOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Grocery Orders'**
+  String get groceryOrders;
+
+  /// No description provided for @noGroceryOrdersYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No grocery orders yet'**
+  String get noGroceryOrdersYet;
+
+  /// No description provided for @estAmountColon.
+  ///
+  /// In en, this message translates to:
+  /// **'Est. Amount: '**
+  String get estAmountColon;
+
+  /// No description provided for @recentDigitalMemos.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Digital Memos'**
+  String get recentDigitalMemos;
+
+  /// No description provided for @itemsWord.
+  ///
+  /// In en, this message translates to:
+  /// **'items'**
+  String get itemsWord;
+
+  /// No description provided for @myOrdersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Orders'**
+  String get myOrdersTitle;
+
+  /// No description provided for @statusAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Accepted'**
+  String get statusAccepted;
+
+  /// No description provided for @statusReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get statusReady;
+
+  /// No description provided for @statusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get statusCompleted;
+
+  /// No description provided for @statusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get statusCancelled;
+
+  /// No description provided for @statusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get statusPending;
+
+  /// No description provided for @unlistedItemsOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlisted / Custom Items (Optional)'**
+  String get unlistedItemsOptional;
+
+  /// No description provided for @fulfillmentMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Fulfillment Method'**
+  String get fulfillmentMethod;
+
+  /// No description provided for @deliveryAddressRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery Address *'**
+  String get deliveryAddressRequired;
+
+  /// No description provided for @deliveryAddressHint.
+  ///
+  /// In en, this message translates to:
+  /// **'House/Road no., area'**
+  String get deliveryAddressHint;
+
+  /// No description provided for @specialInstructionsOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Special Instructions (Optional)'**
+  String get specialInstructionsOptional;
+
+  /// No description provided for @specialInstructionsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Please pack carefully, deliver by evening'**
+  String get specialInstructionsHint;
+
+  /// No description provided for @selectedWord.
+  ///
+  /// In en, this message translates to:
+  /// **'selected'**
+  String get selectedWord;
+
+  /// No description provided for @estSubtotalColon.
+  ///
+  /// In en, this message translates to:
+  /// **'Est. Subtotal: '**
+  String get estSubtotalColon;
+
+  /// No description provided for @sendingEllipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending...'**
+  String get sendingEllipsis;
+
+  /// No description provided for @submitOrderToStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit Order to Store'**
+  String get submitOrderToStore;
+
+  /// No description provided for @storeKhataLedger.
+  ///
+  /// In en, this message translates to:
+  /// **'Store Khata Ledger'**
+  String get storeKhataLedger;
+
+  /// No description provided for @totalOutstanding.
+  ///
+  /// In en, this message translates to:
+  /// **'TOTAL OUTSTANDING'**
+  String get totalOutstanding;
+
+  /// No description provided for @activeDueStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Due'**
+  String get activeDueStatus;
+
+  /// No description provided for @settledStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Settled'**
+  String get settledStatus;
+
+  /// No description provided for @allEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'All Entries'**
+  String get allEntries;
+
+  /// No description provided for @creditDueFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit Due'**
+  String get creditDueFilter;
+
+  /// No description provided for @paymentsFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Payments'**
+  String get paymentsFilter;
+
+  /// No description provided for @noLedgerRecordsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No ledger records found'**
+  String get noLedgerRecordsFound;
+
+  /// No description provided for @storeDirectorySummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary of all stores you hold an account or ledger with.'**
+  String get storeDirectorySummary;
+
+  /// No description provided for @noStoreAccountsLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'No store accounts linked yet'**
+  String get noStoreAccountsLinked;
+
+  /// No description provided for @connectedStores.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected Stores'**
+  String get connectedStores;
+
+  /// No description provided for @totalDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Due'**
+  String get totalDue;
+
+  /// No description provided for @confirmLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to log out from the customer portal?'**
+  String get confirmLogout;
+
+  /// No description provided for @currentDueLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Due'**
+  String get currentDueLabel;
+
+  /// No description provided for @groceryActiveOrdersSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated subtotal of your grocery orders sent to stores.'**
+  String get groceryActiveOrdersSummary;
+
+  /// No description provided for @requestsCountSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'requests'**
+  String get requestsCountSuffix;
+
+  /// No description provided for @sendGroceryListPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Select your store and send a grocery shopping list.'**
+  String get sendGroceryListPrompt;
+
+  /// No description provided for @receiptsCountSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'receipts'**
+  String get receiptsCountSuffix;
+
+  /// No description provided for @posReceiptAutoSaveNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchases from the POS will automatically appear here.'**
+  String get posReceiptAutoSaveNotice;
+
+  /// No description provided for @customerDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer Dashboard'**
+  String get customerDashboard;
+
+  /// No description provided for @customerProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer Profile'**
+  String get customerProfile;
+
+  /// No description provided for @verifiedCustomerAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified Customer Account'**
+  String get verifiedCustomerAccount;
+
+  /// No description provided for @appLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'App Language'**
+  String get appLanguage;
+
+  /// No description provided for @darkMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark Mode'**
+  String get darkMode;
+
+  /// No description provided for @switchToMerchantPos.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to Dokan POS'**
+  String get switchToMerchantPos;
+
+  /// No description provided for @confirmLogoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Logout'**
+  String get confirmLogoutTitle;
+
+  /// No description provided for @confirmLogoutMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to log out?'**
+  String get confirmLogoutMessage;
+
+  /// No description provided for @homeTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get homeTab;
+
+  /// No description provided for @khataTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Khata'**
+  String get khataTab;
+
+  /// No description provided for @dueBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'DUE'**
+  String get dueBadge;
+
+  /// No description provided for @ordersTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders'**
+  String get ordersTab;
+
+  /// No description provided for @profileTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileTab;
+
+  /// No description provided for @viewLedger.
+  ///
+  /// In en, this message translates to:
+  /// **'View Ledger'**
+  String get viewLedger;
+
+  /// No description provided for @sendOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Order'**
+  String get sendOrder;
+
+  /// No description provided for @ledgerBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Ledger Book'**
+  String get ledgerBook;
+
+  /// No description provided for @settleDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Settle Due'**
+  String get settleDue;
+
+  /// No description provided for @currentOutstandingBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'CURRENT OUTSTANDING BALANCE'**
+  String get currentOutstandingBalance;
+
+  /// No description provided for @zeroBalanceSettled.
+  ///
+  /// In en, this message translates to:
+  /// **'ZERO BALANCE (SETTLED)'**
+  String get zeroBalanceSettled;
+
+  /// No description provided for @availableCreditWithColon.
+  ///
+  /// In en, this message translates to:
+  /// **'Available Credit:'**
+  String get availableCreditWithColon;
+
+  /// No description provided for @outstandingStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Outstanding'**
+  String get outstandingStatus;
+
+  /// No description provided for @totalOutstandingAllStores.
+  ///
+  /// In en, this message translates to:
+  /// **'TOTAL OUTSTANDING (ALL STORES)'**
+  String get totalOutstandingAllStores;
+
+  /// No description provided for @storeDirectoryKhataSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Store Directory & Khata Summary'**
+  String get storeDirectoryKhataSummary;
+
+  /// No description provided for @noStoreAccountsLinkedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect with a storekeeper to view credit khata and order groceries.'**
+  String get noStoreAccountsLinkedDesc;
+
+  /// No description provided for @paymentAmountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Amount (৳)'**
+  String get paymentAmountLabel;
+
+  /// No description provided for @noKhataRecordsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No credit purchases or payments have been recorded for this store yet.'**
+  String get noKhataRecordsSubtitle;
+
+  /// No description provided for @sendGroceryOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Grocery Order'**
+  String get sendGroceryOrder;
+
+  /// No description provided for @targetStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Target Store'**
+  String get targetStore;
+
+  /// No description provided for @storesConnectedSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'stores'**
+  String get storesConnectedSuffix;
+
+  /// No description provided for @availableProductsInStore.
+  ///
+  /// In en, this message translates to:
+  /// **'Available Products in Store'**
+  String get availableProductsInStore;
+
+  /// No description provided for @searchStoreProductsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search products in store...'**
+  String get searchStoreProductsHint;
+
+  /// No description provided for @allCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allCategories;
+
+  /// No description provided for @errorLoadingProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading store products'**
+  String get errorLoadingProducts;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @noProductsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No products found'**
+  String get noProductsFound;
+
+  /// No description provided for @outOfStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of stock'**
+  String get outOfStock;
+
+  /// No description provided for @stockPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Stock: '**
+  String get stockPrefix;
+
+  /// No description provided for @add.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get add;
+
+  /// No description provided for @orderedProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Ordered Products:'**
+  String get orderedProducts;
+
+  /// No description provided for @estimatedSubtotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated Subtotal:'**
+  String get estimatedSubtotal;
+
+  /// No description provided for @additionalCustomItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional / Custom Items:'**
+  String get additionalCustomItems;
+
+  /// No description provided for @orderSuccessMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Grocery order sent successfully!'**
+  String get orderSuccessMessage;
+
+  /// No description provided for @orderErrorMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send order. Please try again.'**
+  String get orderErrorMessage;
+
+  /// No description provided for @selectedStoreFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected Store'**
+  String get selectedStoreFallback;
+
+  /// No description provided for @valuedCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Valued Customer'**
+  String get valuedCustomer;
+
+  /// No description provided for @storeFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Store'**
+  String get storeFallback;
+
+  /// No description provided for @mfsShort.
+  ///
+  /// In en, this message translates to:
+  /// **'MFS'**
+  String get mfsShort;
+
+  /// No description provided for @selectProductsOrEnterItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select products or enter items to order'**
+  String get selectProductsOrEnterItems;
+
+  /// No description provided for @enterDeliveryAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter delivery address for home delivery'**
+  String get enterDeliveryAddress;
+
+  /// No description provided for @loadingStoreProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading store products...'**
+  String get loadingStoreProducts;
+
+  /// No description provided for @customItemsSampleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 1kg Onion, 250g Ginger, Green chillies...'**
+  String get customItemsSampleHint;
+
+  /// No description provided for @customItemsInstructionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You can still write items directly in the custom list below.'**
+  String get customItemsInstructionHint;
+
+  /// No description provided for @payViaMfs.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay via MFS'**
+  String get payViaMfs;
+
+  /// No description provided for @storesWithOutstandingDues.
+  ///
+  /// In en, this message translates to:
+  /// **'You have outstanding dues in connected stores.'**
+  String get storesWithOutstandingDues;
+
+  /// No description provided for @sendGroceryOrderSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send item list for store pickup or delivery'**
+  String get sendGroceryOrderSubtitle;
+
+  /// No description provided for @activeGroceryOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Grocery Order'**
+  String get activeGroceryOrder;
 }
 
 class _AppLocalizationsDelegate

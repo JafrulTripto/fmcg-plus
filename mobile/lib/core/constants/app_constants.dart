@@ -8,13 +8,21 @@ class AppConstants {
   // Base API configuration (Supports --dart-define=API_URL=... with smart defaults)
   static const String _configuredApiUrl = String.fromEnvironment('API_URL', defaultValue: '');
   static const String _configuredAndroidApiUrl = String.fromEnvironment('ANDROID_API_URL', defaultValue: '');
+  static String? _overrideApiUrl;
 
+  static void setOverrideApiUrl(String? url) => _overrideApiUrl = url;
+  static String? get overrideApiUrl => _overrideApiUrl;
+
+  static String get defaultHostApiUrl => 'http://192.168.0.114:8080/api/v1';
   static String get defaultApiBaseUrl => effectiveApiBaseUrl;
   static String get androidEmulatorApiBaseUrl => _configuredAndroidApiUrl.isNotEmpty 
       ? _configuredAndroidApiUrl 
-      : 'http://10.0.2.2:8080/api/v1';
+      : defaultHostApiUrl;
 
   static String get effectiveApiBaseUrl {
+    if (_overrideApiUrl != null && _overrideApiUrl!.trim().isNotEmpty) {
+      return _overrideApiUrl!.trim();
+    }
     if (_configuredApiUrl.isNotEmpty) {
       return _configuredApiUrl;
     }
@@ -27,8 +35,14 @@ class AppConstants {
     return 'http://localhost:8080/api/v1';
   }
 
-  // App Name
+  // App Name & Defaults
   static const String appName = 'FMCG+';
+  static const String defaultStoreId = 'store_default';
+  static const String defaultStoreNameBn = 'আমার দোকান';
+  static const String defaultStoreNameEn = 'My Store';
+  static const String defaultStoreName = defaultStoreNameBn;
+  static const String defaultStoreAddress = 'Dhaka, Bangladesh';
+  static const String defaultStorePhone = '+880 1700-000000';
 
   // Palette Tokens
   static const Color primaryBlue = Color(0xFF1D4ED8);

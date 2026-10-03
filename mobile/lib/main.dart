@@ -11,6 +11,8 @@ import 'presentation/view_models/pos_view_model.dart';
 import 'presentation/views/auth/merchant_auth_view.dart';
 import 'presentation/views/customer/customer_portal_view.dart';
 import 'presentation/views/shopkeeper/shopkeeper_shell_view.dart';
+import 'presentation/view_models/notification_view_model.dart';
+import 'data/services/notification_service.dart';
 import 'l10n/app_localizations.dart';
 
 void main() async {
@@ -22,6 +24,7 @@ void main() async {
 
   try {
     await Firebase.initializeApp();
+    await NotificationService().initialize();
   } catch (e) {
     debugPrint('Firebase initialize notice: $e');
   }
@@ -34,6 +37,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => PosViewModel()),
         ChangeNotifierProvider(create: (_) => InventoryViewModel()),
         ChangeNotifierProvider(create: (_) => CustomerViewModel()),
+        ChangeNotifierProvider(create: (_) => NotificationViewModel()),
       ],
       child: const FMCGApp(),
     ),
@@ -57,14 +61,18 @@ class FMCGApp extends StatelessWidget {
       locale: appMode.locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: appMode.userType == UserType.customer
+      home: (authVm.isAuthenticated && authVm.isCustomer)
           ? const CustomerPortalView()
-          : authVm.isAuthenticated
-              ? const ShopkeeperShellView()
-              : MerchantAuthView(
-                  viewModel: authVm,
-                  onAuthenticated: () {},
-                ),
+          : (authVm.isAuthenticated && authVm.isMerchant)
+              ? (appMode.userType == UserType.customer
+                  ? const CustomerPortalView()
+                  : const ShopkeeperShellView())
+              : appMode.userType == UserType.customer
+                  ? const CustomerPortalView()
+                  : MerchantAuthView(
+                      viewModel: authVm,
+                      onAuthenticated: () {},
+                    ),
     );
   }
 }

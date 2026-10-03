@@ -164,24 +164,12 @@ class _MerchantAuthViewState extends State<MerchantAuthView> {
                         else if (_viewModel.step == 1)
                           _buildOtpVerificationStep()
                         else if (_viewModel.step == 2)
-                          _buildStoreOnboardingStep(),
+                          _buildRoleSelectionStep()
+                        else if (_viewModel.step == 3)
+                          _buildStoreOnboardingStep()
+                        else if (_viewModel.step == 4)
+                          _buildCustomerOnboardingStep(),
                       ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-                  TextButton.icon(
-                    onPressed: () {
-                      context.read<AppModeViewModel>().setUserType(UserType.customer);
-                    },
-                    icon: Icon(Icons.people_alt_outlined, size: 16, color: isDark ? AppConstants.textMutedDark : const Color(0xFF64748B)),
-                    label: Text(
-                      l10n?.switchToCustomerPortal ?? 'Switch to Customer Portal',
-                      style: (isDark ? GoogleFonts.spaceGrotesk : GoogleFonts.plusJakartaSans)(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppConstants.textMutedDark : const Color(0xFF64748B),
-                      ),
                     ),
                   ),
                 ],
@@ -384,11 +372,19 @@ class _MerchantAuthViewState extends State<MerchantAuthView> {
           icon: Icons.login_rounded,
           onPressed: _viewModel.isLoading
               ? null
-              : () {
-                  _viewModel.loginWithPin(
+              : () async {
+                  final ok = await _viewModel.loginWithPin(
                     phone: _phoneController.text,
                     pin: _pinController.text,
                   );
+                  if (ok && mounted) {
+                    if (_viewModel.isCustomer) {
+                      context.read<AppModeViewModel>().setUserType(UserType.customer);
+                    } else if (_viewModel.isMerchant) {
+                      context.read<AppModeViewModel>().setUserType(UserType.shopkeeper);
+                    }
+                    widget.onAuthenticated?.call();
+                  }
                 },
         ),
       ],
@@ -545,41 +541,269 @@ class _MerchantAuthViewState extends State<MerchantAuthView> {
     );
   }
 
-  // Step 2: Merchant & Store Setup
-  Widget _buildStoreOnboardingStep() {
-    final l10n = AppLocalizations.of(context);
+  // Step 2: Role Selection (Shopkeeper vs Customer)
+  Widget _buildRoleSelectionStep() {
+    final appMode = context.watch<AppModeViewModel>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              appMode.isBangla ? 'আপনার ভূমিকা নির্বাচন করুন' : 'Select Your Role',
+              style: (isDark ? GoogleFonts.spaceGrotesk : GoogleFonts.plusJakartaSans)(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: isDark ? AppConstants.textPrimaryDark : const Color(0xFF0F172A),
+              ),
+            ),
+            TextButton(
+              onPressed: () => _viewModel.setStep(1),
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+              child: Text(
+                appMode.isBangla ? 'পেছনে' : 'Back',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppConstants.primaryBlueDark : const Color(0xFF1D4ED8),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
         Text(
-          l10n?.storeDetailsAndPin ?? 'Store Details & Security PIN',
-          style: GoogleFonts.spaceGrotesk(fontSize: 17, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
+          appMode.isBangla ? 'আপনি কীভাবে FMCG+ ব্যবহার করতে চান?' : 'How would you like to use FMCG+?',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            color: isDark ? AppConstants.textMutedDark : const Color(0xFF64748B),
+          ),
+        ),
+        const SizedBox(height: 18),
+
+        // Shopkeeper Card Option
+        InkWell(
+          onTap: () => _viewModel.selectSignupRole(UserType.shopkeeper),
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? AppConstants.surfaceElevatedDark : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isDark ? AppConstants.primaryBlueDark.withValues(alpha: 0.5) : const Color(0xFFBFDBFE),
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1D4ED8).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.storefront_rounded, color: Color(0xFF1D4ED8), size: 28),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            appMode.isBangla ? 'আমি দোকানদার' : 'I am a Shopkeeper',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? AppConstants.textPrimaryDark : const Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1D4ED8).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Merchant',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1D4ED8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        appMode.isBangla
+                            ? 'বিক্রি পরিচালনা, ডিজিটাল খাতা হিসাব, স্টক ট্র্যাকিং এবং গ্রাহকদের অর্ডারের তালিকা গ্রহণ।'
+                            : 'Sales management, digital ledger accounts, inventory tracking, and receiving customer grocery orders.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: isDark ? AppConstants.textMutedDark : const Color(0xFF475569),
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFF94A3B8)),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // Customer Card Option
+        InkWell(
+          onTap: () => _viewModel.selectSignupRole(UserType.customer),
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? AppConstants.surfaceElevatedDark : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isDark ? AppConstants.secondaryEmeraldDark.withValues(alpha: 0.5) : const Color(0xFFA7F3D0),
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF059669).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF059669), size: 28),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            appMode.isBangla ? 'আমি গ্রাহক' : 'I am a Customer',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? AppConstants.textPrimaryDark : const Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF059669).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Customer',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF059669),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        appMode.isBangla
+                            ? 'দোকানের বাকি খাতা দেখা, খরচের ভাউচার সংরক্ষণ এবং দোকানে বাজারের ফর্দ পাঠান।'
+                            : 'View store dues, save expense receipts, and send grocery orders to your local store.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: isDark ? AppConstants.textMutedDark : const Color(0xFF475569),
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Color(0xFF94A3B8)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Step 3: Merchant & Store Setup
+  Widget _buildStoreOnboardingStep() {
+    final appMode = context.watch<AppModeViewModel>();
+    final l10n = AppLocalizations.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              l10n?.storeDetailsAndPin ?? (appMode.isBangla ? 'দোকানের বিবরণ ও সিকিউরিটি পিন' : 'Store Details & Security PIN'),
+              style: (isDark ? GoogleFonts.spaceGrotesk : GoogleFonts.plusJakartaSans)(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: isDark ? AppConstants.textPrimaryDark : const Color(0xFF0F172A),
+              ),
+            ),
+            TextButton(
+              onPressed: () => _viewModel.setStep(2),
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+              child: Text(
+                appMode.isBangla ? 'রোল পরিবর্তন' : 'Change Role',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppConstants.primaryBlueDark : const Color(0xFF1D4ED8),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 14),
         _buildTextField(
           controller: _nameController,
-          label: l10n?.ownerName ?? 'Owner Name',
-          hint: l10n?.ownerNameHint ?? 'e.g. Rafiqul Islam',
+          label: l10n?.ownerName ?? (appMode.isBangla ? 'দোকানদারের নাম' : 'Owner Name'),
+          hint: l10n?.ownerNameHint ?? (appMode.isBangla ? 'যেমন: রফিকুল ইসলাম' : 'e.g. Rafiqul Islam'),
           prefixIcon: Icons.person_outline_rounded,
         ),
         const SizedBox(height: 12),
         _buildTextField(
           controller: _storeNameController,
-          label: l10n?.storeName ?? 'Store Name',
-          hint: l10n?.storeNameHint ?? 'e.g. Rafiq General Store',
+          label: l10n?.storeName ?? (appMode.isBangla ? 'দোকানের নাম' : 'Store Name'),
+          hint: l10n?.storeNameHint ?? (appMode.isBangla ? 'যেমন: রফিক জেনারেল স্টোর' : 'e.g. Rafiq General Store'),
           prefixIcon: Icons.store_mall_directory_outlined,
         ),
         const SizedBox(height: 12),
         _buildTextField(
           controller: _storeAddressController,
-          label: l10n?.storeAddress ?? 'Store Address',
-          hint: l10n?.storeAddressHint ?? 'e.g. Mirpur-10, Dhaka',
+          label: l10n?.storeAddress ?? (appMode.isBangla ? 'দোকানের ঠিকানা' : 'Store Address'),
+          hint: l10n?.storeAddressHint ?? (appMode.isBangla ? 'যেমন: মিরপুর-১০, ঢাকা' : 'e.g. Mirpur-10, Dhaka'),
           prefixIcon: Icons.location_on_outlined,
         ),
         const SizedBox(height: 12),
         _buildTextField(
           controller: _newPinController,
-          label: l10n?.setPin ?? 'Set 4-Digit Security PIN',
+          label: l10n?.setPin ?? (appMode.isBangla ? '৪-সংখ্যার সিকিউরিটি পিন দিন' : 'Set 4-Digit Security PIN'),
           hint: '1234',
           isNumericCode: true,
           keyboardType: TextInputType.number,
@@ -588,17 +812,98 @@ class _MerchantAuthViewState extends State<MerchantAuthView> {
         ),
         const SizedBox(height: 20),
         _buildPrimaryButton(
-          label: l10n?.launchStore ?? 'Launch Store',
+          label: l10n?.launchStore ?? (appMode.isBangla ? 'দোকান চালু করুন' : 'Launch Store'),
           icon: Icons.rocket_launch_rounded,
           onPressed: _viewModel.isLoading
               ? null
-              : () {
-                  _viewModel.registerMerchant(
+              : () async {
+                  final ok = await _viewModel.registerMerchant(
                     name: _nameController.text,
                     storeName: _storeNameController.text,
                     storeAddress: _storeAddressController.text,
                     pin: _newPinController.text,
                   );
+                  if (ok && mounted) {
+                    context.read<AppModeViewModel>().setUserType(UserType.shopkeeper);
+                  }
+                },
+        ),
+      ],
+    );
+  }
+
+  // Step 4: Customer Profile Setup
+  Widget _buildCustomerOnboardingStep() {
+    final appMode = context.watch<AppModeViewModel>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              appMode.isBangla ? 'গ্রাহক একাউন্ট সেটআপ' : 'Customer Account Setup',
+              style: (isDark ? GoogleFonts.spaceGrotesk : GoogleFonts.plusJakartaSans)(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: isDark ? AppConstants.textPrimaryDark : const Color(0xFF0F172A),
+              ),
+            ),
+            TextButton(
+              onPressed: () => _viewModel.setStep(2),
+              style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+              child: Text(
+                appMode.isBangla ? 'রোল পরিবর্তন' : 'Change Role',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppConstants.primaryBlueDark : const Color(0xFF1D4ED8),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          appMode.isBangla ? 'আপনার নাম এবং ৪-সংখ্যার সিকিউরিটি পিন দিন' : 'Enter your name and a 4-digit security PIN',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            color: isDark ? AppConstants.textMutedDark : const Color(0xFF64748B),
+          ),
+        ),
+        const SizedBox(height: 14),
+        _buildTextField(
+          controller: _nameController,
+          label: appMode.isBangla ? 'আপনার নাম' : 'Your Name',
+          hint: appMode.isBangla ? 'যেমন: শফিক আহমেদ' : 'e.g. Shafiq Ahmed',
+          prefixIcon: Icons.person_outline_rounded,
+        ),
+        const SizedBox(height: 12),
+        _buildTextField(
+          controller: _newPinController,
+          label: appMode.isBangla ? '৪-সংখ্যার সিকিউরিটি পিন সেট করুন' : 'Set 4-Digit Security PIN',
+          hint: '1234',
+          isNumericCode: true,
+          keyboardType: TextInputType.number,
+          obscureText: _obscurePin,
+          prefixIcon: Icons.lock_outline_rounded,
+        ),
+        const SizedBox(height: 20),
+        _buildPrimaryButton(
+          label: appMode.isBangla ? 'নিবন্ধন সম্পন্ন করুন' : 'Complete Registration',
+          icon: Icons.check_circle_outline_rounded,
+          onPressed: _viewModel.isLoading
+              ? null
+              : () async {
+                  final ok = await _viewModel.registerCustomer(
+                    name: _nameController.text,
+                    pin: _newPinController.text,
+                  );
+                  if (ok && mounted) {
+                    context.read<AppModeViewModel>().setUserType(UserType.customer);
+                  }
                 },
         ),
       ],
@@ -714,7 +1019,29 @@ class _MerchantAuthViewState extends State<MerchantAuthView> {
   }
 
   Widget _buildErrorBanner(String message) {
+    final appMode = context.watch<AppModeViewModel>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    String displayMessage = message;
+    if (!appMode.isBangla) {
+      if (message.contains('বৈধ ফোন নম্বর')) {
+        displayMessage = 'Please enter a valid phone number.';
+      } else if (message.contains('ইতিমধ্যে নিবন্ধিত')) {
+        displayMessage = 'This phone number is already registered. Please login directly.';
+      } else if (message.contains('সঠিক ভেরিফিকেশন কোড')) {
+        displayMessage = 'Please enter the correct verification code.';
+      } else if (message.contains('সব তথ্য এবং নূন্যতম ৪-সংখ্যার পিন')) {
+        displayMessage = 'Please fill all details and set at least a 4-digit PIN.';
+      } else if (message.contains('আপনার নাম এবং নূন্যতম ৪-সংখ্যার পিন')) {
+        displayMessage = 'Please enter your name and at least a 4-digit PIN.';
+      } else if (message.contains('সঠিক ফোন নম্বর এবং পিন কোড')) {
+        displayMessage = 'Please enter valid phone number and PIN code.';
+      } else if (message.contains('ভেরিফিকেশন ব্যর্থ')) {
+        displayMessage = 'Verification failed. Please try again.';
+      } else if (message.contains('OTP পাঠানো সম্ভব হয়নি')) {
+        displayMessage = 'Could not send OTP. Please try again.';
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
@@ -728,7 +1055,7 @@ class _MerchantAuthViewState extends State<MerchantAuthView> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              message,
+              displayMessage,
               style: (isDark ? GoogleFonts.spaceGrotesk : GoogleFonts.plusJakartaSans)(
                 fontSize: 12,
                 color: isDark ? AppConstants.alertCrimsonDark : const Color(0xFF991B1B),
@@ -742,7 +1069,15 @@ class _MerchantAuthViewState extends State<MerchantAuthView> {
   }
 
   Widget _buildSuccessBanner(String message) {
+    final appMode = context.watch<AppModeViewModel>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    String displayMessage = message;
+    if (!appMode.isBangla) {
+      if (message.contains('সফল') || message.contains('পাঠানো হয়েছে')) {
+        displayMessage = 'OTP code sent successfully.';
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
@@ -756,7 +1091,7 @@ class _MerchantAuthViewState extends State<MerchantAuthView> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              message,
+              displayMessage,
               style: (isDark ? GoogleFonts.spaceGrotesk : GoogleFonts.plusJakartaSans)(
                 fontSize: 12,
                 color: isDark ? AppConstants.secondaryEmeraldDark : const Color(0xFF065F46),

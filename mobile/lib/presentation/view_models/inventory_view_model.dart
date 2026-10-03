@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/utils/uuid_util.dart';
 import '../../data/models/product_model.dart';
 import '../../data/models/master_product_model.dart';
 import '../../data/models/scan_result_model.dart';
@@ -61,7 +60,29 @@ class InventoryViewModel extends ChangeNotifier {
   }
 
   Future<ScanResultModel> scanBarcodeDetailed(String barcode) async {
-    return await _apiService.scanBarcodeDetailed(barcode);
+    final clean = barcode.trim();
+    if (clean.isEmpty) {
+      return ScanResultModel(
+        status: ScanStatus.unknownBarcode,
+        barcode: barcode,
+        message: 'Empty barcode',
+      );
+    }
+
+    // 1. Instant 0ms memory check: Is this product already loaded in store inventory?
+    for (final p in _products) {
+      if (p.barcode.isNotEmpty && p.barcode == clean && p.isStocked) {
+        return ScanResultModel(
+          status: ScanStatus.foundInStore,
+          barcode: clean,
+          storeProduct: p,
+          message: 'Product "${p.name}" found in store inventory',
+        );
+      }
+    }
+
+    // 2. Query backend / master catalog
+    return await _apiService.scanBarcodeDetailed(clean);
   }
 
   Future<bool> onboardMasterProduct({
@@ -87,34 +108,20 @@ class InventoryViewModel extends ChangeNotifier {
     );
 
     if (created != null) {
-      _products.insert(0, created);
+      final idx = _products.indexWhere((p) => p.id == created.id || (p.barcode.isNotEmpty && p.barcode == created.barcode));
+      if (idx >= 0) {
+        _products[idx] = created;
+      } else {
+        _products.insert(0, created);
+      }
       _isLoading = false;
       notifyListeners();
       return true;
     }
 
-    // Fallback: create locally
-    final fallbackProduct = ProductModel(
-      id: UuidUtil.generate(),
-      name: customName.isNotEmpty ? customName : masterProduct.productName,
-      category: masterProduct.category,
-      brand: masterProduct.brand,
-      packSize: masterProduct.packSize,
-      unit: masterProduct.unit,
-      costPrice: costPrice,
-      sellingPrice: sellingPrice,
-      stock: initialStock,
-      minThreshold: minThreshold,
-      barcode: masterProduct.barcode,
-      sku: masterProduct.sku,
-      imageUrl: masterProduct.imageUrl,
-      shelfLocation: shelfLocation,
-      isStocked: true,
-    );
-    _products.insert(0, fallbackProduct);
     _isLoading = false;
     notifyListeners();
-    return true;
+    return false;
   }
 
   Future<bool> addProduct({
@@ -147,7 +154,12 @@ class InventoryViewModel extends ChangeNotifier {
 
     final created = await _apiService.createProduct(payload);
     if (created != null) {
-      _products.insert(0, created);
+      final idx = _products.indexWhere((p) => p.id == created.id || (created.barcode.isNotEmpty && p.barcode == created.barcode));
+      if (idx >= 0) {
+        _products[idx] = created;
+      } else {
+        _products.insert(0, created);
+      }
       _isLoading = false;
       notifyListeners();
       return true;

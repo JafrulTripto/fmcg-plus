@@ -2,6 +2,15 @@ package models
 
 import "time"
 
+// Default Store Constants
+const (
+	DefaultStoreID      = "store_default"
+	DefaultStoreName    = "আমার দোকান"
+	DefaultStoreOwner   = "দোকানদার"
+	DefaultStorePhone   = "+880 1700-000000"
+	DefaultStoreAddress = "Dhaka, Bangladesh"
+)
+
 // Category represents a top-level FMCG product category
 type Category struct {
 	ID     string `json:"id" gorm:"primaryKey"`
@@ -27,9 +36,9 @@ type Manufacturer struct {
 
 // Brand represents an FMCG commercial trademark
 type Brand struct {
-	ID             string `json:"id" gorm:"primaryKey"`
-	ManufacturerID string `json:"manufacturer_id" gorm:"index"`
-	Name           string `json:"name" binding:"required"`
+	ID             string  `json:"id" gorm:"primaryKey"`
+	ManufacturerID *string `json:"manufacturer_id,omitempty" gorm:"index"`
+	Name           string  `json:"name" binding:"required"`
 }
 
 // MasterProduct represents canonical Bangladesh FMCG product specifications
@@ -38,11 +47,13 @@ type MasterProduct struct {
 	Barcode       string    `json:"barcode" binding:"required" gorm:"uniqueIndex"`
 	ProductName   string    `json:"product_name" binding:"required" gorm:"index"`
 	ProductNameBn string    `json:"product_name_bn"`
-	BrandID       string    `json:"brand_id" gorm:"index"`
-	CategoryID    string    `json:"category_id" gorm:"index"`
-	SubcategoryID string    `json:"subcategory_id" gorm:"index"`
+	BrandID       *string   `json:"brand_id,omitempty" gorm:"index"`
+	CategoryID    *string   `json:"category_id,omitempty" gorm:"index"`
+	SubcategoryID *string   `json:"subcategory_id,omitempty" gorm:"index"`
+	BrandName     string    `json:"brand,omitempty" gorm:"-"`
+	CategoryName  string    `json:"category,omitempty" gorm:"-"`
 	PackSize      string    `json:"pack_size"`
-	Unit          string    `json:"unit" binding:"required"`
+	Unit          string    `json:"unit"`
 	SuggestedMRP  float64   `json:"suggested_mrp"`
 	SuggestedCost float64   `json:"suggested_cost"`
 	SKU           string    `json:"sku"`
@@ -64,13 +75,13 @@ type Store struct {
 // StoreInventory represents a dokan's on-shelf stock & pricing
 type StoreInventory struct {
 	ID              string    `json:"id" gorm:"primaryKey"`
-	StoreID         string    `json:"store_id" binding:"required" gorm:"index"`
-	MasterProductID string    `json:"master_product_id" gorm:"index"`
-	Barcode         string    `json:"barcode" binding:"required" gorm:"index"`
+	StoreID         string    `json:"store_id" gorm:"index"`
+	MasterProductID *string   `json:"master_product_id,omitempty" gorm:"index"`
+	Barcode         string    `json:"barcode" gorm:"index"`
 	CustomName      string    `json:"custom_name" binding:"required"`
 	CustomNameBn    string    `json:"custom_name_bn"`
-	CostPrice       float64   `json:"cost_price" binding:"required"`
-	SellingPrice    float64   `json:"selling_price" binding:"required"`
+	CostPrice       float64   `json:"cost_price"`
+	SellingPrice    float64   `json:"selling_price"`
 	CurrentStock    int       `json:"current_stock"`
 	MinThreshold    int       `json:"min_threshold"`
 	ShelfLocation   string    `json:"shelf_location"`
@@ -79,17 +90,22 @@ type StoreInventory struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 }
 
+// TableName overrides the default pluralized table name from store_inventories to store_inventory
+func (StoreInventory) TableName() string {
+	return "store_inventory"
+}
+
 // Product represents a retail item (combining store inventory + master catalog info for POS UI)
 type Product struct {
 	ID            string    `json:"id" gorm:"primaryKey"`
 	StoreID       string    `json:"store_id,omitempty"`
 	Name          string    `json:"name" binding:"required" gorm:"index"`
-	Category      string    `json:"category" binding:"required" gorm:"index"`
+	Category      string    `json:"category" gorm:"index"`
 	Brand         string    `json:"brand"`
 	PackSize      string    `json:"pack_size"`
-	Unit          string    `json:"unit" binding:"required"`
-	CostPrice     float64   `json:"cost_price" binding:"required"`
-	SellingPrice  float64   `json:"selling_price" binding:"required"`
+	Unit          string    `json:"unit"`
+	CostPrice     float64   `json:"cost_price"`
+	SellingPrice  float64   `json:"selling_price"`
 	Stock         int       `json:"stock"`
 	MinThreshold  int       `json:"min_threshold"`
 	Barcode       string    `json:"barcode" gorm:"index"`
@@ -105,9 +121,11 @@ type Product struct {
 type Customer struct {
 	ID                string       `json:"id" gorm:"primaryKey"`
 	StoreID           string       `json:"store_id,omitempty" gorm:"index"`
+	StoreName         string       `json:"store_name,omitempty" gorm:"-"`
+	StoreAddress      string       `json:"store_address,omitempty" gorm:"-"`
 	Name              string       `json:"name" binding:"required"`
 	NameBn            string       `json:"name_bn"`
-	Phone             string       `json:"phone" binding:"required" gorm:"uniqueIndex"`
+	Phone             string       `json:"phone" binding:"required" gorm:"index"`
 	Address           string       `json:"address"`
 	CreditLimit       float64      `json:"credit_limit"`
 	CurrentDue        float64      `json:"current_due"`
@@ -125,10 +143,10 @@ type TransactionItem struct {
 	ID               string  `json:"id,omitempty" gorm:"primaryKey"`
 	TransactionID    string  `json:"transaction_id,omitempty" gorm:"index"`
 	StoreID          string  `json:"store_id,omitempty"`
-	StoreInventoryID string  `json:"store_inventory_id,omitempty"`
+	StoreInventoryID *string `json:"store_inventory_id,omitempty" gorm:"index"`
 	ProductID        string  `json:"product_id" binding:"required"`
 	Barcode          string  `json:"barcode,omitempty"`
-	Name             string  `json:"name"`
+	Name             string  `json:"name" gorm:"column:product_name"`
 	Quantity         int     `json:"quantity" binding:"required,gt=0"`
 	UnitPrice        float64 `json:"unit_price"`
 	CostPrice        float64 `json:"cost_price,omitempty"`
@@ -141,8 +159,9 @@ type TransactionItem struct {
 type Transaction struct {
 	ID            string            `json:"id" gorm:"primaryKey"`
 	StoreID       string            `json:"store_id,omitempty" gorm:"index"`
+	StoreName     string            `json:"store_name,omitempty" gorm:"-"`
 	OrderNumber   string            `json:"order_number" gorm:"index"`
-	CustomerID    string            `json:"customer_id" gorm:"index"`
+	CustomerID    *string           `json:"customer_id,omitempty" gorm:"index"`
 	CustomerName  string            `json:"customer_name"`
 	Items         []TransactionItem `json:"items" binding:"required,dive" gorm:"serializer:json"`
 	Subtotal      float64           `json:"subtotal"`
@@ -195,7 +214,7 @@ type StockMovement struct {
 	ChangeQty        int       `json:"change_qty"`
 	BalanceAfter     int       `json:"balance_after"`
 	Reason           string    `json:"reason"` // "initial_stock", "pos_sale", "restock", "damaged", "return"
-	ReferenceID      string    `json:"reference_id,omitempty"`
+	ReferenceID      *string   `json:"reference_id,omitempty"`
 	Notes            string    `json:"notes"`
 	CreatedAt        time.Time `json:"created_at" gorm:"index"`
 }
@@ -254,3 +273,71 @@ type RecordPaymentRequest struct {
 	Method  string  `json:"method"` // "cash", "bkash", "nagad", "bank"
 	Notes   string  `json:"notes"`
 }
+
+// GroceryRequestItem represents an item within a customer's grocery request
+type GroceryRequestItem struct {
+	Name     string `json:"name"`
+	Quantity string `json:"quantity"`
+	Notes    string `json:"notes,omitempty"`
+}
+
+// GroceryRequest represents a customer's grocery request / shopping list submitted to their registered store
+type GroceryRequest struct {
+	ID            string               `json:"id" gorm:"primaryKey"`
+	StoreID       string               `json:"store_id" gorm:"index"`
+	StoreName     string               `json:"store_name"`
+	CustomerID    string               `json:"customer_id" gorm:"index"`
+	CustomerName  string               `json:"customer_name"`
+	CustomerPhone string               `json:"customer_phone" gorm:"index"`
+	ItemsText     string               `json:"items_text"`
+	Items         []GroceryRequestItem `json:"items,omitempty" gorm:"serializer:json"`
+	DeliveryType  string               `json:"delivery_type"` // "pickup", "delivery"
+	Address        string               `json:"address,omitempty"`
+	Notes          string               `json:"notes,omitempty"`
+	EstimatedTotal float64              `json:"estimated_total" gorm:"default:0"`
+	Status         string               `json:"status"` // "pending", "accepted", "ready", "completed", "cancelled"
+	CreatedAt      time.Time            `json:"created_at" gorm:"index"`
+	UpdatedAt      time.Time            `json:"updated_at"`
+}
+
+// CreateGroceryRequestInput represents the incoming payload from a customer ordering groceries
+type CreateGroceryRequestInput struct {
+	StoreID        string               `json:"store_id"`
+	StoreName      string               `json:"store_name"`
+	CustomerID     string               `json:"customer_id"`
+	CustomerName   string               `json:"customer_name"`
+	CustomerPhone  string               `json:"customer_phone" binding:"required"`
+	ItemsText      string               `json:"items_text" binding:"required"`
+	Items          []GroceryRequestItem `json:"items"`
+	DeliveryType   string               `json:"delivery_type"` // "pickup" or "delivery"
+	Address        string               `json:"address"`
+	Notes          string               `json:"notes"`
+	EstimatedTotal float64              `json:"estimated_total"`
+}
+
+// UpdateGroceryStatusRequest represents status transitions for a grocery request
+type UpdateGroceryStatusRequest struct {
+	Status string `json:"status" binding:"required"`
+}
+
+// DeviceToken stores FCM registration tokens for push notification delivery
+type DeviceToken struct {
+	ID        string    `json:"id" gorm:"primaryKey"`
+	UserID    string    `json:"user_id" gorm:"index"`
+	StoreID   string    `json:"store_id" gorm:"index"`
+	Token     string    `json:"token" gorm:"uniqueIndex"`
+	Platform  string    `json:"platform"`
+	Role      string    `json:"role"`
+	Active    bool      `json:"active" gorm:"default:true"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type RegisterDeviceTokenInput struct {
+	Token    string `json:"token" binding:"required"`
+	Platform string `json:"platform"`
+	Role     string `json:"role"`
+	StoreID  string `json:"store_id"`
+	UserID   string `json:"user_id"`
+}
+

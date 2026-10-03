@@ -109,3 +109,9 @@ mobile/ios/Pods/
 mobile/ios/.symlinks/
 mobile/ios/Flutter/.last_build_id
 *.ipa
+
+# ==============================================================================
+# Firebase Service Account Keys (NEVER commit)
+# ==============================================================================
+*-firebase-adminsdk-*.json
+firebase-service-account*.json

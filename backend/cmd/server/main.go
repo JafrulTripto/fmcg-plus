@@ -57,8 +57,22 @@ func main() {
 		fmt.Println("ℹ️  Nishchit SMS Gateway: Not configured (running with mock/local fallback). Set NISHCHIT_API_KEY in .env")
 	}
 
+	// Initialize FCM Service
+	var fcmService *services.FCMService
+	if cfg.FCMCredentialsPath != "" {
+		svc, err := services.NewFCMService(cfg.FCMCredentialsPath)
+		if err == nil {
+			fcmService = svc
+			fmt.Println("🔔 FCM Push Notification Service: Connected")
+		} else {
+			fmt.Printf("⚠️ FCM service init failed: %v\n", err)
+		}
+	} else {
+		fmt.Println("ℹ️  FCM Push Notification Service: Not configured. Set FCM_CREDENTIALS_PATH in .env")
+	}
+
 	// Initialize Handlers
-	h := handlers.NewHandlers(repo, storage, jwtService, otpProvider, nishchitClient)
+	h := handlers.NewHandlers(repo, storage, jwtService, otpProvider, nishchitClient, fcmService)
 
 	// Setup Router
 	r := router.SetupRouter(cfg, h)

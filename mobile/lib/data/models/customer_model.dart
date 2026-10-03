@@ -1,6 +1,10 @@
+import '../../core/constants/app_constants.dart';
+
 class KhataEntryModel {
   final String id;
   final String customerId;
+  final String storeId;
+  final String storeName;
   final String transactionId;
   final String type;
   final String label;
@@ -14,6 +18,8 @@ class KhataEntryModel {
   KhataEntryModel({
     required this.id,
     required this.customerId,
+    this.storeId = '',
+    this.storeName = '',
     this.transactionId = '',
     required this.type,
     required this.label,
@@ -31,6 +37,8 @@ class KhataEntryModel {
     return KhataEntryModel(
       id: json['id'] as String? ?? '',
       customerId: json['customer_id'] as String? ?? '',
+      storeId: json['store_id'] as String? ?? '',
+      storeName: json['store_name'] as String? ?? '',
       transactionId: json['transaction_id'] as String? ?? '',
       type: json['type'] as String? ?? 'sale_credit',
       label: json['label'] as String? ?? 'Transaction',
@@ -48,6 +56,9 @@ class KhataEntryModel {
 
 class CustomerModel {
   final String id;
+  final String storeId;
+  final String storeName;
+  final String storeAddress;
   final String name;
   final String nameBn;
   final String phone;
@@ -62,6 +73,9 @@ class CustomerModel {
 
   CustomerModel({
     required this.id,
+    this.storeId = AppConstants.defaultStoreId,
+    this.storeName = AppConstants.defaultStoreNameBn,
+    this.storeAddress = '',
     required this.name,
     this.nameBn = '',
     required this.phone,
@@ -89,13 +103,42 @@ class CustomerModel {
   }
 
   factory CustomerModel.fromJson(Map<String, dynamic> json) {
+    final sId = json['store_id'] as String? ?? AppConstants.defaultStoreId;
+    final sName = json['store_name'] as String? ??
+        (sId == 'store_mirpur'
+            ? 'মিরপুর ডিপার্টমেন্টাল স্টোর'
+            : (sId == 'store_gulshan' ? 'ভাই ভাই এন্টারপ্রাইজ' : AppConstants.defaultStoreNameBn));
+
     var rawLedger = json['ledger'] as List<dynamic>? ?? [];
     List<KhataEntryModel> parsedLedger = rawLedger
-        .map((e) => KhataEntryModel.fromJson(e as Map<String, dynamic>))
+        .map((e) {
+          final entry = KhataEntryModel.fromJson(e as Map<String, dynamic>);
+          if (entry.storeId.isEmpty) {
+            return KhataEntryModel(
+              id: entry.id,
+              customerId: entry.customerId.isNotEmpty ? entry.customerId : (json['id']?.toString() ?? ''),
+              storeId: sId,
+              storeName: sName,
+              transactionId: entry.transactionId,
+              type: entry.type,
+              label: entry.label,
+              description: entry.description,
+              orderTotal: entry.orderTotal,
+              paidAmount: entry.paidAmount,
+              creditChange: entry.creditChange,
+              runningBalance: entry.runningBalance,
+              createdAt: entry.createdAt,
+            );
+          }
+          return entry;
+        })
         .toList();
 
     return CustomerModel(
       id: json['id'] as String? ?? '',
+      storeId: sId,
+      storeName: sName,
+      storeAddress: json['store_address'] as String? ?? '',
       name: json['name'] as String? ?? '',
       nameBn: json['name_bn'] as String? ?? '',
       phone: json['phone'] as String? ?? '',
@@ -113,6 +156,9 @@ class CustomerModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'store_id': storeId,
+      'store_name': storeName,
+      'store_address': storeAddress,
       'name': name,
       'name_bn': nameBn,
       'phone': phone,

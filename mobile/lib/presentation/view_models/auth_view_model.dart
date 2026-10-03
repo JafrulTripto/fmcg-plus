@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import '../../data/models/auth_model.dart';
 import '../../data/services/auth_service.dart';
+import '../../data/services/notification_service.dart';
 import '../../data/services/otp_provider.dart';
+import 'app_mode_view_model.dart';
 
 enum AuthMode { login, register }
 
@@ -13,7 +15,11 @@ class AuthViewModel extends ChangeNotifier {
   String? _successMessage;
 
   AuthMode _mode = AuthMode.login;
-  int _step = 0; // 0: Phone / Login, 1: OTP Code verification, 2: Store Onboarding
+  // Steps in register mode:
+  // 0: Phone / Login, 1: OTP Code verification, 2: Role selection (Shopkeeper vs Customer),
+  // 3: Store Onboarding (Shopkeeper), 4: Customer Onboarding (Customer)
+  int _step = 0;
+  UserType _selectedSignupRole = UserType.shopkeeper;
 
   String _phone = '';
   String _verificationToken = '';
@@ -28,6 +34,7 @@ class AuthViewModel extends ChangeNotifier {
   String? get successMessage => _successMessage;
   AuthMode get mode => _mode;
   int get step => _step;
+  UserType get selectedSignupRole => _selectedSignupRole;
   String get phone => _phone;
   bool get isAuthenticated => _authService.isAuthenticated;
   UserModel? get currentUser => _authService.currentUser;
@@ -37,6 +44,22 @@ class AuthViewModel extends ChangeNotifier {
   String? get registeredStoreName => _registeredStoreName;
   String? get registeredUserName => _registeredUserName;
   String? get detectedOtp => _detectedOtp;
+
+  bool get isMerchant =>
+      isAuthenticated &&
+      currentUser != null &&
+      (currentUser!.role == 'merchant' ||
+          currentUser!.role == 'shopkeeper' ||
+          currentUser!.role == 'admin' ||
+          currentUser!.role == 'owner' ||
+          currentUser!.role == 'cashier');
+
+  bool get isCustomer =>
+      isAuthenticated &&
+      currentUser != null &&
+      currentUser!.role == 'customer';
+
+
 
   void setMode(AuthMode mode) {
     _mode = mode;
@@ -52,6 +75,17 @@ class AuthViewModel extends ChangeNotifier {
 
   void setStep(int step) {
     _step = step;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  void selectSignupRole(UserType role) {
+    _selectedSignupRole = role;
+    if (role == UserType.shopkeeper) {
+      _step = 3; // Move to Store Onboarding
+    } else {
+      _step = 4; // Move to Customer Onboarding
+    }
     _errorMessage = null;
     notifyListeners();
   }
@@ -188,7 +222,7 @@ class AuthViewModel extends ChangeNotifier {
         _verificationToken = res.verificationToken;
         _detectedOtp = null;
         if (_mode == AuthMode.register) {
-          _step = 2; // Move to merchant store details entry
+          _step = 2; // Move to Role Selection (Shopkeeper vs Customer)
         }
         notifyListeners();
         return true;
@@ -234,6 +268,42 @@ class AuthViewModel extends ChangeNotifier {
       _isLoading = false;
       _step = 0;
       notifyListeners();
+      NotificationService().registerToken();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // 3b. Register Customer
+  Future<bool> registerCustomer({
+    required String name,
+    required String pin,
+  }) async {
+    if (name.trim().isEmpty || pin.trim().length < 4) {
+      _errorMessage = 'দয়া করে আপনার নাম এবং নূন্যতম ৪-সংখ্যার পিন দিন';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _authService.registerCustomer(
+        phone: _phone,
+        name: name.trim(),
+        pin: pin.trim(),
+        verificationToken: _verificationToken,
+      );
+      _isLoading = false;
+      _step = 0;
+      notifyListeners();
+      NotificationService().registerToken();
       return true;
     } catch (e) {
       _isLoading = false;
@@ -266,6 +336,7 @@ class AuthViewModel extends ChangeNotifier {
       _phone = cleanPhone;
       _isLoading = false;
       notifyListeners();
+      NotificationService().registerToken();
       return true;
     } catch (e) {
       _isLoading = false;

@@ -28,7 +28,7 @@ func setupTestApp() (*handlers.Handlers, http.Handler) {
 	jwtService := services.NewJWTService(cfg)
 	otpProvider := services.NewOTPProvider(cfg)
 
-	h := handlers.NewHandlers(repo, storage, jwtService, otpProvider, nil)
+	h := handlers.NewHandlers(repo, storage, jwtService, otpProvider, nil, nil)
 	r := router.SetupRouter(cfg, h)
 
 	return h, r

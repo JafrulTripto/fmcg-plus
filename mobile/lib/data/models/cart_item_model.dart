@@ -18,9 +18,11 @@ class CartItemModel {
   Map<String, dynamic> toCheckoutItemJson() {
     return {
       'product_id': product.id,
+      'barcode': product.barcode,
       'name': product.name,
       'quantity': quantity,
       'unit_price': unitPrice,
+      'cost_price': product.costPrice,
       'unit': product.unit,
       'total_price': total,
     };

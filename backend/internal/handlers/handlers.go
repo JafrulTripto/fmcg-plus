@@ -1,36 +1,88 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 
+	"fmcg-pos-backend/internal/middleware"
 	"fmcg-pos-backend/internal/models"
 	"fmcg-pos-backend/internal/repository"
 	"fmcg-pos-backend/internal/services"
 )
 
 type Handlers struct {
-	repo        repository.Repository
-	storage     services.StorageService
-	JWTService  *services.JWTService
-	OTPProvider services.OTPProvider
-	Nishchit    *services.NishchitClient
-	Auth        *AuthHandler
+	repo            repository.Repository
+	storage         services.StorageService
+	JWTService      *services.JWTService
+	OTPProvider     services.OTPProvider
+	Nishchit        *services.NishchitClient
+	fcmService      *services.FCMService
+	Auth            *AuthHandler
+	CheckoutService services.CheckoutService
 }
 
-func NewHandlers(repo repository.Repository, storage services.StorageService, jwtService *services.JWTService, otpProvider services.OTPProvider, nishchit *services.NishchitClient) *Handlers {
+func NewHandlers(repo repository.Repository, storage services.StorageService, jwtService *services.JWTService, otpProvider services.OTPProvider, nishchit *services.NishchitClient, fcmService *services.FCMService) *Handlers {
 	return &Handlers{
-		repo:        repo,
-		storage:     storage,
-		JWTService:  jwtService,
-		OTPProvider: otpProvider,
-		Nishchit:    nishchit,
-		Auth:        NewAuthHandler(repo, jwtService, otpProvider),
+		repo:            repo,
+		storage:         storage,
+		JWTService:      jwtService,
+		OTPProvider:     otpProvider,
+		Nishchit:        nishchit,
+		fcmService:      fcmService,
+		Auth:            NewAuthHandler(repo, jwtService, otpProvider),
+		CheckoutService: services.NewCheckoutService(repo),
 	}
+}
+
+// resolveStoreID extracts the active store ID with precedence:
+// 1. Explicit storeID argument if non-empty and != models.DefaultStoreID
+// 2. Gin context "store_id" (set by AuthMiddleware)
+// 3. "X-Store-ID" header
+// 4. Authorization Bearer token claims if provided
+// 5. Query param "store_id" if non-empty and != models.DefaultStoreID
+// 6. Explicit storeID argument if models.DefaultStoreID
+// 7. Fallback to models.DefaultStoreID
+func (h *Handlers) resolveStoreID(c *gin.Context, explicitStoreID string) string {
+	explicitStoreID = strings.TrimSpace(explicitStoreID)
+	if explicitStoreID != "" && explicitStoreID != models.DefaultStoreID {
+		return explicitStoreID
+	}
+
+	// 1. From context (AuthMiddleware)
+	if ctxStore := middleware.GetContextStoreID(c); ctxStore != "" && ctxStore != models.DefaultStoreID {
+		return ctxStore
+	}
+
+	// 2. From Authorization header if Bearer token present
+	if authHeader := c.GetHeader("Authorization"); authHeader != "" {
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) == 2 && strings.EqualFold(parts[0], "bearer") {
+			if claims, err := h.JWTService.ValidateAccessToken(strings.TrimSpace(parts[1])); err == nil && claims != nil {
+				if claims.StoreID != "" && claims.StoreID != models.DefaultStoreID {
+					return claims.StoreID
+				}
+			}
+		}
+	}
+
+	// 3. From X-Store-ID header directly
+	if headerStore := strings.TrimSpace(c.GetHeader("X-Store-ID")); headerStore != "" && headerStore != models.DefaultStoreID {
+		return headerStore
+	}
+
+	// 4. Fallback to explicit storeID if provided
+	if explicitStoreID != "" {
+		return explicitStoreID
+	}
+
+	return models.DefaultStoreID
 }
 
 // Health check
@@ -57,12 +109,24 @@ func (h *Handlers) GetProducts(c *gin.Context) {
 	search := c.Query("search")
 	category := c.Query("category")
 	stockFilter := c.Query("stock_filter")
+	storeID := strings.TrimSpace(c.Query("store_id"))
 
 	products, err := h.repo.GetProducts(search, category, stockFilter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	if storeID != "" {
+		storeSpecific := make([]*models.Product, 0)
+		for _, p := range products {
+			if p.StoreID == storeID || (storeID == models.DefaultStoreID && p.StoreID == "") {
+				storeSpecific = append(storeSpecific, p)
+			}
+		}
+		products = storeSpecific
+	}
+
 	c.JSON(http.StatusOK, gin.H{"products": products, "count": len(products)})
 }
 
@@ -160,6 +224,8 @@ func (h *Handlers) OnboardMasterProduct(c *gin.Context) {
 		return
 	}
 
+	req.StoreID = h.resolveStoreID(c, req.StoreID)
+
 	product, err := h.repo.OnboardMasterProduct(&req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -178,6 +244,8 @@ func (h *Handlers) CreateProduct(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	req.StoreID = h.resolveStoreID(c, req.StoreID)
 
 	created, err := h.repo.CreateProduct(&req)
 	if err != nil {
@@ -263,6 +331,8 @@ func (h *Handlers) CreateCustomer(c *gin.Context) {
 		return
 	}
 
+	req.StoreID = h.resolveStoreID(c, req.StoreID)
+
 	created, err := h.repo.CreateCustomer(&req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -304,89 +374,18 @@ func (h *Handlers) Checkout(c *gin.Context) {
 		return
 	}
 
-	// Validate items and calculate subtotal
-	var subtotal float64
-	var itemSummaries []string
+	storeID := h.resolveStoreID(c, req.StoreID)
 
-	for i := range req.Items {
-		item := &req.Items[i]
-		prod, err := h.repo.GetProductByID(item.ProductID)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid product ID: %s", item.ProductID)})
-			return
-		}
-		item.Name = prod.Name
-		if item.UnitPrice <= 0 {
-			item.UnitPrice = prod.SellingPrice
-		}
-		item.Unit = prod.Unit
-		item.CostPrice = prod.CostPrice
-		item.TotalPrice = item.UnitPrice * float64(item.Quantity)
-		subtotal += item.TotalPrice
-		itemSummaries = append(itemSummaries, fmt.Sprintf("%s × %d", prod.Name, item.Quantity))
-
-		// Decrement inventory stock
-		_ = h.repo.DecrementStock(prod.ID, item.Quantity)
-	}
-
-	total := subtotal - req.Discount
-	if total < 0 {
-		total = 0
-	}
-
-	paid := req.PaidAmount
-	if req.PaymentMethod == "cash" {
-		paid = total
-	} else if req.PaymentMethod == "credit" {
-		paid = 0
-	}
-
-	if paid > total {
-		paid = total
-	}
-	remainingDue := total - paid
-
-	// Customer resolution
-	customerName := req.CustomerName
-	if customerName == "" {
-		customerName = "Walk-in Cash Customer"
-	}
-	if req.CustomerID != "" {
-		cust, err := h.repo.GetCustomerByID(req.CustomerID)
-		if err == nil {
-			customerName = cust.Name
-		}
-	}
-
-	tx := &models.Transaction{
-		StoreID:       req.StoreID,
-		CustomerID:    req.CustomerID,
-		CustomerName:  customerName,
-		Items:         req.Items,
-		Subtotal:      subtotal,
-		Discount:      req.Discount,
-		Total:         total,
-		PaidAmount:    paid,
-		RemainingDue:  remainingDue,
-		PaymentMethod: req.PaymentMethod,
-	}
-
-	createdTx, err := h.repo.CreateTransaction(tx)
+	createdTx, err := h.CheckoutService.ProcessCheckout(&req, storeID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// If customer credit due > 0, update Khata ledger
-	if req.CustomerID != "" && remainingDue > 0 {
-		desc := strings.Join(itemSummaries, ", ")
-		_, _, _ = h.repo.AddCustomerCredit(req.CustomerID, createdTx.OrderNumber, total, paid, remainingDue, desc)
-	}
-
 	c.JSON(http.StatusCreated, gin.H{
 		"message":     "Transaction completed successfully",
 		"transaction": createdTx,
-		"receipt":     formatReceipt(createdTx),
+		"receipt":     h.formatReceipt(createdTx),
 	})
 }
 
@@ -397,7 +396,35 @@ func (h *Handlers) GetRecentTransactions(c *gin.Context) {
 		limit = l
 	}
 
-	txs, err := h.repo.GetRecentTransactions(limit)
+	customerID := strings.TrimSpace(c.Query("customer_id"))
+	phone := strings.TrimSpace(c.Query("phone"))
+	storeID := h.resolveStoreID(c, c.Query("store_id"))
+
+	var txs []models.Transaction
+	var err error
+
+	if customerID != "" || phone != "" {
+		txs, err = h.repo.GetCustomerTransactions(customerID, phone, limit)
+	} else if storeID != "" && storeID != models.DefaultStoreID {
+		txs, err = h.repo.GetRecentTransactions(limit * 3)
+		if err == nil {
+			var filtered []models.Transaction
+			for _, t := range txs {
+				if t.StoreID == storeID {
+					filtered = append(filtered, t)
+				}
+				if len(filtered) >= limit {
+					break
+				}
+			}
+			if len(filtered) > 0 {
+				txs = filtered
+			}
+		}
+	} else {
+		txs, err = h.repo.GetRecentTransactions(limit)
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -405,7 +432,7 @@ func (h *Handlers) GetRecentTransactions(c *gin.Context) {
 
 	receipts := make([]gin.H, 0, len(txs))
 	for i := range txs {
-		receipts = append(receipts, formatReceipt(&txs[i]))
+		receipts = append(receipts, h.formatReceipt(&txs[i]))
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -422,10 +449,10 @@ func (h *Handlers) GetReceipt(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, formatReceipt(tx))
+	c.JSON(http.StatusOK, h.formatReceipt(tx))
 }
 
-func formatReceipt(tx *models.Transaction) gin.H {
+func (h *Handlers) formatReceipt(tx *models.Transaction) gin.H {
 	formattedItems := make([]gin.H, 0, len(tx.Items))
 	for _, it := range tx.Items {
 		formattedItems = append(formattedItems, gin.H{
@@ -439,11 +466,42 @@ func formatReceipt(tx *models.Transaction) gin.H {
 		})
 	}
 
+	storeName := models.DefaultStoreName
+	storeAddress := models.DefaultStoreAddress
+	storePhone := models.DefaultStorePhone
+
+	if tx.StoreID != "" && tx.StoreID != models.DefaultStoreID {
+		if store, err := h.repo.GetStoreByID(tx.StoreID); err == nil && store != nil {
+			if store.Name != "" {
+				storeName = store.Name
+			}
+			if store.Address != "" {
+				storeAddress = store.Address
+			}
+			if store.OwnerPhone != "" {
+				storePhone = store.OwnerPhone
+			}
+		}
+	} else if store, err := h.repo.GetStoreByID(models.DefaultStoreID); err == nil && store != nil {
+		if store.Name != "" {
+			storeName = store.Name
+		}
+		if store.Address != "" {
+			storeAddress = store.Address
+		}
+		if store.OwnerPhone != "" {
+			storePhone = store.OwnerPhone
+		}
+	}
+
 	return gin.H{
-		"store_name":     "My Store",
-		"store_name_bn":  "আমার দোকান",
-		"store_branch":   "Dhaka, Bangladesh",
-		"owner_phone":    "+880 1700-000000",
+		"store_id":       tx.StoreID,
+		"store_name":     storeName,
+		"store_name_bn":  storeName,
+		"store_branch":   storeAddress,
+		"store_address":  storeAddress,
+		"owner_phone":    storePhone,
+		"store_phone":    storePhone,
 		"order_number":   tx.OrderNumber,
 		"date_time":      tx.CreatedAt.Format("02 Jan 2006, 03:04 PM"),
 		"created_at":     tx.CreatedAt.Format("02 Jan 2006, 03:04 PM"),
@@ -577,3 +635,234 @@ func (h *Handlers) SendKhataReminderSMS(c *gin.Context) {
 	})
 }
 
+// ---------------------------------------------------------------------
+// Grocery Requests
+// ---------------------------------------------------------------------
+
+// POST /api/v1/grocery-requests
+func (h *Handlers) CreateGroceryRequest(c *gin.Context) {
+	var input models.CreateGroceryRequestInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	storeID := h.resolveStoreID(c, input.StoreID)
+	if storeID == "" {
+		storeID = "store_default"
+	}
+	storeName := input.StoreName
+	if storeName == "" {
+		if store, err := h.repo.GetStoreByID(storeID); err == nil && store != nil {
+			storeName = store.Name
+		} else {
+			storeName = "আমার দোকান"
+		}
+	}
+
+	custID := input.CustomerID
+	custName := input.CustomerName
+	if custID == "" && input.CustomerPhone != "" {
+		if custs, err := h.repo.GetCustomers(input.CustomerPhone, ""); err == nil && len(custs) > 0 {
+			custID = custs[0].ID
+			if custName == "" {
+				custName = custs[0].Name
+			}
+		}
+	}
+
+	estimatedTotal := input.EstimatedTotal
+	if estimatedTotal <= 0 && input.ItemsText != "" {
+		re := regexp.MustCompile(`(?i)(?:মোট|Total|Subtotal)[:\s]*[৳Tk\s]*([0-9]+(?:\.[0-9]+)?)`)
+		matches := re.FindStringSubmatch(input.ItemsText)
+		if len(matches) > 1 {
+			if val, err := strconv.ParseFloat(matches[1], 64); err == nil {
+				estimatedTotal = val
+			}
+		}
+	}
+
+	req := &models.GroceryRequest{
+		StoreID:        storeID,
+		StoreName:      storeName,
+		CustomerID:     custID,
+		CustomerName:   custName,
+		CustomerPhone:  input.CustomerPhone,
+		ItemsText:      input.ItemsText,
+		Items:          input.Items,
+		DeliveryType:   input.DeliveryType,
+		Address:        input.Address,
+		Notes:          input.Notes,
+		EstimatedTotal: estimatedTotal,
+		Status:         "pending",
+	}
+
+	created, err := h.repo.CreateGroceryRequest(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Async push notification to store merchants
+	go func() {
+		if h.fcmService == nil {
+			return
+		}
+		tokens, err := h.repo.GetDeviceTokensByStoreID(storeID, "merchant")
+		if err != nil || len(tokens) == 0 {
+			// Fallback: check all active tokens for this store in case role was registered as owner/shopkeeper
+			tokens, err = h.repo.GetDeviceTokensByStoreID(storeID, "")
+		}
+		if err != nil || len(tokens) == 0 {
+			log.Printf("[FCM] No merchant tokens for store %s: %v", storeID, err)
+			return
+		}
+
+		tokenStrings := make([]string, len(tokens))
+		for i, t := range tokens {
+			tokenStrings[i] = t.Token
+		}
+
+		title := "🛒 নতুন অর্ডার এসেছে!"
+		body := fmt.Sprintf("%s থেকে ৳%.0f এর অর্ডার", custName, estimatedTotal)
+		data := map[string]string{
+			"type":               "grocery_request",
+			"grocery_request_id": created.ID,
+			"store_id":           storeID,
+			"customer_name":      custName,
+			"estimated_total":    fmt.Sprintf("%.2f", estimatedTotal),
+		}
+
+		h.fcmService.SendToMultiple(context.Background(), tokenStrings, title, body, data)
+	}()
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message":         "Grocery request submitted successfully",
+		"grocery_request": created,
+	})
+}
+
+// GET /api/v1/grocery-requests
+func (h *Handlers) GetGroceryRequests(c *gin.Context) {
+	storeID := c.Query("store_id")
+	customerPhone := c.Query("customer_phone")
+	customerID := c.Query("customer_id")
+	status := c.Query("status")
+
+	requests, err := h.repo.GetGroceryRequests(storeID, customerPhone, customerID, status)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Enrich estimated total if missing from older records
+	for i := range requests {
+		if requests[i].EstimatedTotal <= 0 && requests[i].ItemsText != "" {
+			re := regexp.MustCompile(`(?i)(?:মোট|Total|Subtotal)[:\s]*[৳Tk\s]*([0-9]+(?:\.[0-9]+)?)`)
+			matches := re.FindStringSubmatch(requests[i].ItemsText)
+			if len(matches) > 1 {
+				if val, err := strconv.ParseFloat(matches[1], 64); err == nil {
+					requests[i].EstimatedTotal = val
+				}
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"grocery_requests": requests,
+	})
+}
+
+// GET /api/v1/grocery-requests/:id
+func (h *Handlers) GetGroceryRequestByID(c *gin.Context) {
+	id := c.Param("id")
+	req, err := h.repo.GetGroceryRequestByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, req)
+}
+
+// PUT /api/v1/grocery-requests/:id/status
+func (h *Handlers) UpdateGroceryRequestStatus(c *gin.Context) {
+	id := c.Param("id")
+	var req models.UpdateGroceryStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	updated, err := h.repo.UpdateGroceryRequestStatus(id, req.Status)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":         "Grocery request status updated",
+		"grocery_request": updated,
+	})
+}
+
+// POST /api/v1/devices/register
+func (h *Handlers) RegisterDeviceToken(c *gin.Context) {
+	var input models.RegisterDeviceTokenInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	storeID := h.resolveStoreID(c, input.StoreID)
+	role := strings.ToLower(strings.TrimSpace(input.Role))
+	if role == "owner" || role == "shopkeeper" || role == "admin" || role == "cashier" || role == "" {
+		role = "merchant"
+	}
+
+	token := &models.DeviceToken{
+		UserID:   input.UserID,
+		StoreID:  storeID,
+		Token:    input.Token,
+		Platform: input.Platform,
+		Role:     role,
+	}
+
+	if err := h.repo.UpsertDeviceToken(token); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register device token"})
+		return
+	}
+
+	log.Printf("[FCM] Registered device token for user '%s', store '%s', role '%s'", input.UserID, storeID, role)
+	c.JSON(http.StatusOK, gin.H{"message": "Device token registered successfully"})
+}
+
+// DELETE /api/v1/devices/unregister
+func (h *Handlers) UnregisterDeviceToken(c *gin.Context) {
+	var input struct {
+		Token string `json:"token" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.repo.DeactivateDeviceToken(input.Token); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unregister device token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Device token unregistered"})
+}
+
+// GET /api/v1/stores
+func (h *Handlers) GetStores(c *gin.Context) {
+	stores, err := h.repo.GetStores()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"stores": stores,
+	})
+}

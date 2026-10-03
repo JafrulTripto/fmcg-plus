@@ -17,7 +17,7 @@ func SetupRouter(cfg *config.Config, h *handlers.Handlers) *gin.Engine {
 	r.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, X-Store-ID")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
 
 		if c.Request.Method == "OPTIONS" {
@@ -54,6 +54,9 @@ func SetupRouter(cfg *config.Config, h *handlers.Handlers) *gin.Engine {
 
 		// Dashboard
 		v1.GET("/dashboard", h.GetDashboard)
+
+		// Stores (Retail Dokans & Merchants)
+		v1.GET("/stores", h.GetStores)
 
 		// Products & Store Inventory POS Scanning
 		products := v1.Group("/products")
@@ -104,6 +107,22 @@ func SetupRouter(cfg *config.Config, h *handlers.Handlers) *gin.Engine {
 		{
 			storage.POST("/upload", h.UploadImage)
 			storage.GET("/presigned-url", h.GetPresignedUploadURL)
+		}
+
+		// Grocery Requests (Customer Grocery Lists)
+		grocery := v1.Group("/grocery-requests")
+		{
+			grocery.POST("", h.CreateGroceryRequest)
+			grocery.GET("", h.GetGroceryRequests)
+			grocery.GET("/:id", h.GetGroceryRequestByID)
+			grocery.PUT("/:id/status", h.UpdateGroceryRequestStatus)
+		}
+
+		// Device Token Registration (Push Notifications)
+		devices := v1.Group("/devices")
+		{
+			devices.POST("/register", h.RegisterDeviceToken)
+			devices.DELETE("/unregister", h.UnregisterDeviceToken)
 		}
 	}
 

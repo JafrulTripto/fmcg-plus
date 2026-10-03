@@ -34,6 +34,16 @@ type Config struct {
 	NishchitAPIKey  string
 	NishchitBaseURL string
 	NishchitFrom    string
+
+	// FCM
+	FCMCredentialsPath string
+
+	// Default Tenant Store Configuration
+	DefaultStoreID      string
+	DefaultStoreName    string
+	DefaultStoreAddress string
+	DefaultStorePhone   string
+	DefaultStoreOwner   string
 }
 
 // loadDotEnv parses key=value pairs from .env files and sets them if not already defined in the environment.
@@ -133,6 +143,27 @@ func LoadConfig() *Config {
 	}
 	nishchitFrom := os.Getenv("NISHCHIT_FROM")
 
+	defaultStoreID := os.Getenv("DEFAULT_STORE_ID")
+	if defaultStoreID == "" {
+		defaultStoreID = "store_default"
+	}
+	defaultStoreName := os.Getenv("DEFAULT_STORE_NAME")
+	if defaultStoreName == "" {
+		defaultStoreName = "আমার দোকান"
+	}
+	defaultStoreAddress := os.Getenv("DEFAULT_STORE_ADDRESS")
+	if defaultStoreAddress == "" {
+		defaultStoreAddress = "Dhaka, Bangladesh"
+	}
+	defaultStorePhone := os.Getenv("DEFAULT_STORE_PHONE")
+	if defaultStorePhone == "" {
+		defaultStorePhone = "+880 1700-000000"
+	}
+	defaultStoreOwner := os.Getenv("DEFAULT_STORE_OWNER")
+	if defaultStoreOwner == "" {
+		defaultStoreOwner = "দোকানদার"
+	}
+
 	if otpProvider == "" {
 		if nishchitAPIKey != "" {
 			otpProvider = "nishchit"
@@ -142,6 +173,11 @@ func LoadConfig() *Config {
 	}
 
 	firebaseProjectID := os.Getenv("FIREBASE_PROJECT_ID")
+
+	fcmCredentialsPath := os.Getenv("FCM_CREDENTIALS_PATH")
+	if fcmCredentialsPath == "" {
+		fcmCredentialsPath = os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	}
 
 	return &Config{
 		Port:                 port,
@@ -164,9 +200,15 @@ func LoadConfig() *Config {
 		JWTRefreshExpiryDays: 30,
 		OTPProvider:          otpProvider,
 		FirebaseProjectID:    firebaseProjectID,
+		FCMCredentialsPath:   fcmCredentialsPath,
 		NishchitAPIKey:       nishchitAPIKey,
 		NishchitBaseURL:      nishchitBaseURL,
 		NishchitFrom:         nishchitFrom,
+		DefaultStoreID:      defaultStoreID,
+		DefaultStoreName:    defaultStoreName,
+		DefaultStoreAddress: defaultStoreAddress,
+		DefaultStorePhone:   defaultStorePhone,
+		DefaultStoreOwner:   defaultStoreOwner,
 	}
 }
 

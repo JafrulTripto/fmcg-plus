@@ -72,10 +72,14 @@ class ReceiptTicket extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                receipt.orderNumber,
-                style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.black87),
+              Expanded(
+                child: Text(
+                  receipt.orderNumber,
+                  style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.black87),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 receipt.dateTime,
                 style: GoogleFonts.jetBrainsMono(fontSize: 10, color: Colors.grey.shade600),
@@ -97,11 +101,15 @@ class ReceiptTicket extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 3),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${it.name} × ${it.quantity}',
-                      style: GoogleFonts.jetBrainsMono(fontSize: 12, color: Colors.black87),
+                    Expanded(
+                      child: Text(
+                        '${it.name} × ${it.quantity}',
+                        style: GoogleFonts.jetBrainsMono(fontSize: 12, color: Colors.black87),
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       Formatters.formatCurrency(it.totalPrice),
                       style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
@@ -187,14 +195,17 @@ class ReceiptTicket extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: fontSize,
-            fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-            color: Colors.black87,
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: fontSize,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+              color: Colors.black87,
+            ),
           ),
         ),
+        const SizedBox(width: 8),
         Text(
           value,
           style: GoogleFonts.jetBrainsMono(

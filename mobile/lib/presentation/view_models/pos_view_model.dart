@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../core/constants/app_constants.dart';
 import '../../data/models/product_model.dart';
 import '../../data/models/customer_model.dart';
 import '../../data/models/cart_item_model.dart';
 import '../../data/models/transaction_model.dart';
 import '../../data/services/api_service.dart';
+import '../../data/services/auth_service.dart';
 
 enum PaymentMode { cash, partial, credit }
 
@@ -34,8 +36,13 @@ class PosViewModel extends ChangeNotifier {
   final List<ReceiptModel> _recentTransactions = [];
   List<ReceiptModel> get recentTransactions => List.unmodifiable(_recentTransactions);
 
-  Future<void> loadRecentTransactions() async {
-    final list = await _apiService.getRecentTransactions();
+  Future<void> loadRecentTransactions({String? customerId, String? phone, String? storeId}) async {
+    final list = await _apiService.getRecentTransactions(
+      limit: 20,
+      customerId: customerId,
+      phone: phone,
+      storeId: storeId ?? AuthService().storeId,
+    );
     _recentTransactions.clear();
     _recentTransactions.addAll(list);
     notifyListeners();
@@ -44,6 +51,7 @@ class PosViewModel extends ChangeNotifier {
   int get totalItemCount => _cart.fold(0, (sum, item) => sum + item.quantity);
   double get subtotal => _cart.fold(0.0, (sum, item) => sum + item.subtotal);
   double get grandTotal => (subtotal - _discount).clamp(0.0, double.infinity);
+  double get total => grandTotal;
   double get remainingDue => (_paymentMode == PaymentMode.cash) ? 0.0 : (grandTotal - _cashReceived).clamp(0.0, double.infinity);
 
   void addToCart(ProductModel product) {
@@ -109,17 +117,19 @@ class PosViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<ReceiptModel?> processCheckout() async {
+  Future<ReceiptModel?> processCheckout({String? storeId}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
+      final activeStoreId = storeId ?? AuthService().storeId ?? AppConstants.defaultStoreId;
       final payload = {
+        'store_id': activeStoreId,
         'customer_id': _selectedCustomer?.id ?? '',
         'customer_name': _selectedCustomer?.name ?? 'Walk-in Cash Customer',
         'items': _cart.map((i) => i.toCheckoutItemJson()).toList(),
         'discount': _discount,
-        'paid_amount': _cashReceived,
+        'paid_amount': _paymentMode == PaymentMode.cash ? total : _cashReceived,
         'payment_method': _paymentMode.name,
       };
 

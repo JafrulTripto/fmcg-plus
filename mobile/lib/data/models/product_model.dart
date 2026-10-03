@@ -1,5 +1,8 @@
+import '../../core/constants/app_constants.dart';
+
 class ProductModel {
   final String id;
+  final String storeId;
   final String name;
   final String category;
   final String brand;
@@ -17,6 +20,7 @@ class ProductModel {
 
   ProductModel({
     required this.id,
+    this.storeId = AppConstants.defaultStoreId,
     required this.name,
     required this.category,
     this.brand = '',
@@ -39,6 +43,7 @@ class ProductModel {
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     return ProductModel(
       id: json['id'] as String? ?? '',
+      storeId: json['store_id'] as String? ?? AppConstants.defaultStoreId,
       name: json['name'] as String? ?? '',
       category: json['category'] as String? ?? 'General',
       brand: json['brand'] as String? ?? '',

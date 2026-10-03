@@ -24,7 +24,7 @@ func setupTestRouter(t *testing.T) (http.Handler, repository.Repository) {
 	storage := services.NewStorageService(cfg)
 	jwtService := services.NewJWTService(cfg)
 	otpProvider := services.NewOTPProvider(cfg)
-	h := handlers.NewHandlers(repo, storage, jwtService, otpProvider, nil)
+	h := handlers.NewHandlers(repo, storage, jwtService, otpProvider, nil, nil)
 	return router.SetupRouter(cfg, h), repo
 }
 
@@ -185,6 +185,59 @@ func TestCheckoutPromptScenario(t *testing.T) {
 	}
 }
 
+func TestWalkInCheckout(t *testing.T) {
+	r, _ := setupTestRouter(t)
+
+	// Walk-in customer with empty CustomerID and an on-the-fly item
+	checkoutReq := models.CheckoutRequest{
+		CustomerID:    "",
+		CustomerName:  "Walk-in Cash Customer",
+		PaymentMethod: "cash",
+		Discount:      0.0,
+		PaidAmount:    0.0,
+		Items: []models.TransactionItem{
+			{
+				ProductID:  "prod-walkin-1",
+				Barcode:    "8941100511862",
+				Name:       "Radhuni Falooda Mix",
+				UnitPrice:  110.0,
+				Quantity:   2,
+				TotalPrice: 220.0,
+			},
+		},
+	}
+
+	body, _ := json.Marshal(checkoutReq)
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/transactions/checkout", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201 Created for walk-in checkout, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp struct {
+		Transaction models.Transaction `json:"transaction"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode walk-in checkout response: %v", err)
+	}
+
+	if resp.Transaction.CustomerID != nil {
+		t.Errorf("expected nil CustomerID for walk-in customer, got %v", *resp.Transaction.CustomerID)
+	}
+	if resp.Transaction.Total != 220.0 {
+		t.Errorf("expected total 220.0, got %f", resp.Transaction.Total)
+	}
+	if resp.Transaction.PaidAmount != 220.0 {
+		t.Errorf("expected paid 220.0 for cash payment, got %f", resp.Transaction.PaidAmount)
+	}
+	if resp.Transaction.RemainingDue != 0.0 {
+		t.Errorf("expected remaining due 0.0, got %f", resp.Transaction.RemainingDue)
+	}
+}
+
 func TestStockAdjustment(t *testing.T) {
 	r, repo := setupTestRouter(t)
 
@@ -228,10 +281,11 @@ func TestRecordCustomerPayment(t *testing.T) {
 		t.Fatalf("failed to create customer: %v", err)
 	}
 
+	// 1. Partial payment: pay 70 out of 170
 	payReq := models.RecordPaymentRequest{
-		Amount: 170.0,
+		Amount: 70.0,
 		Method: "bkash",
-		Notes:  "Settled via bKash",
+		Notes:  "Partial settlement via bKash",
 	}
 	body, _ := json.Marshal(payReq)
 	req, _ := http.NewRequest(http.MethodPost, "/api/v1/customers/"+cust.ID+"/payments", bytes.NewReader(body))
@@ -242,6 +296,50 @@ func TestRecordCustomerPayment(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200 OK for customer payment, got %d: %s", w.Code, w.Body.String())
 	}
+
+	var res struct {
+		Customer   *models.Customer   `json:"customer"`
+		KhataEntry *models.KhataEntry `json:"khata_entry"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	if res.Customer.CurrentDue != 100.0 {
+		t.Fatalf("expected remaining due 100.0 after partial payment of 70, got %.2f", res.Customer.CurrentDue)
+	}
+	if res.Customer.Status != "warning" {
+		t.Fatalf("expected customer status 'warning' for partial balance, got '%s'", res.Customer.Status)
+	}
+	if res.KhataEntry.RunningBalance != 100.0 {
+		t.Fatalf("expected running balance 100.0 in khata entry, got %.2f", res.KhataEntry.RunningBalance)
+	}
+
+	// 2. Full settlement of remaining 100
+	payReq2 := models.RecordPaymentRequest{
+		Amount: 100.0,
+		Method: "cash",
+		Notes:  "Final clearance",
+	}
+	body2, _ := json.Marshal(payReq2)
+	req2, _ := http.NewRequest(http.MethodPost, "/api/v1/customers/"+cust.ID+"/payments", bytes.NewReader(body2))
+	req2.Header.Set("Content-Type", "application/json")
+	w2 := httptest.NewRecorder()
+	r.ServeHTTP(w2, req2)
+
+	if w2.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d", w2.Code)
+	}
+	var res2 struct {
+		Customer *models.Customer `json:"customer"`
+	}
+	_ = json.Unmarshal(w2.Body.Bytes(), &res2)
+	if res2.Customer.CurrentDue != 0.0 {
+		t.Fatalf("expected remaining due 0.0 after full payment, got %.2f", res2.Customer.CurrentDue)
+	}
+	if res2.Customer.Status != "clear" {
+		t.Fatalf("expected customer status 'clear' after full payment, got '%s'", res2.Customer.Status)
+	}
 }
 
 func TestThreeStateBarcodeResolution(t *testing.T) {
@@ -249,7 +347,7 @@ func TestThreeStateBarcodeResolution(t *testing.T) {
 
 	// Onboard Radhuni Falooda Mix so it is stocked on shelf in store
 	_, err := repo.OnboardMasterProduct(&models.OnboardMasterProductRequest{
-		StoreID:         "store_default",
+		StoreID:         models.DefaultStoreID,
 		MasterProductID: "8941100511862",
 		CostPrice:       60.0,
 		SellingPrice:    75.0,
@@ -316,7 +414,7 @@ func TestMasterCatalogAndOnboarding(t *testing.T) {
 
 	// Test POST /api/v1/products/onboard
 	onboardReq := models.OnboardMasterProductRequest{
-		StoreID:         "store_default",
+		StoreID:         models.DefaultStoreID,
 		MasterProductID: "8941197131806",
 		CostPrice:       90.0,
 		SellingPrice:    110.0,
@@ -332,6 +430,122 @@ func TestMasterCatalogAndOnboarding(t *testing.T) {
 
 	if wOnboard.Code != http.StatusCreated && wOnboard.Code != http.StatusOK {
 		t.Fatalf("expected 201 Created for onboard, got %d: %s", wOnboard.Code, wOnboard.Body.String())
+	}
+}
+
+func TestCustomerCreationAndLedger(t *testing.T) {
+	r, repo := setupTestRouter(t)
+
+	// Create customer with initial due
+	cust, err := repo.CreateCustomer(&models.Customer{
+		Name:       "Kamal Ahmed",
+		Phone:      "+8801811223344",
+		CurrentDue: 250.0,
+	})
+	if err != nil {
+		t.Fatalf("failed to create customer: %v", err)
+	}
+
+	if len(cust.Ledger) == 0 {
+		t.Fatalf("expected initial ledger entry for customer with initial due")
+	}
+	if cust.Ledger[0].CreditChange != 250.0 {
+		t.Fatalf("expected 250.0 credit change in initial ledger entry, got %.2f", cust.Ledger[0].CreditChange)
+	}
+
+	// GET /api/v1/customers/:id
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/customers/"+cust.ID, nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d", w.Code)
+	}
+	var fetched models.Customer
+	if err := json.Unmarshal(w.Body.Bytes(), &fetched); err != nil {
+		t.Fatalf("failed to unmarshal: %v", err)
+	}
+	if len(fetched.Ledger) != 1 {
+		t.Fatalf("expected 1 ledger record, got %d", len(fetched.Ledger))
+	}
+}
+
+func TestGroceryRequests(t *testing.T) {
+	r, repo := setupTestRouter(t)
+
+	// Create customer
+	cust, _ := repo.CreateCustomer(&models.Customer{
+		Name:  "Tahmid Hassan",
+		Phone: "+8801912345678",
+	})
+
+	// 1. Submit Grocery Request
+	reqBody := models.CreateGroceryRequestInput{
+		StoreID:       models.DefaultStoreID,
+		StoreName:     "Test Store",
+		CustomerID:    cust.ID,
+		CustomerName:  cust.Name,
+		CustomerPhone: cust.Phone,
+		ItemsText:     "1kg sugar, 2L soybean oil",
+		DeliveryType:  "delivery",
+		Address:       "House 10, Road 5, Dhanmondi",
+		Notes:         "Please deliver before 5 PM",
+	}
+	body, _ := json.Marshal(reqBody)
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/grocery-requests", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201 Created for grocery request, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var res struct {
+		GroceryRequest *models.GroceryRequest `json:"grocery_request"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &res); err != nil {
+		t.Fatalf("failed to unmarshal grocery request response: %v", err)
+	}
+	if res.GroceryRequest == nil || res.GroceryRequest.ID == "" {
+		t.Fatalf("expected non-empty grocery request ID")
+	}
+	if res.GroceryRequest.Status != "pending" {
+		t.Fatalf("expected status 'pending', got '%s'", res.GroceryRequest.Status)
+	}
+
+	// 2. Fetch Grocery Requests for customer
+	reqGet, _ := http.NewRequest(http.MethodGet, "/api/v1/grocery-requests?customer_phone="+cust.Phone, nil)
+	wGet := httptest.NewRecorder()
+	r.ServeHTTP(wGet, reqGet)
+
+	if wGet.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d", wGet.Code)
+	}
+	var getRes struct {
+		Requests []*models.GroceryRequest `json:"grocery_requests"`
+	}
+	json.Unmarshal(wGet.Body.Bytes(), &getRes)
+	if len(getRes.Requests) != 1 {
+		t.Fatalf("expected 1 grocery request for customer, got %d", len(getRes.Requests))
+	}
+
+	// 3. Update status to 'accepted'
+	updateBody, _ := json.Marshal(models.UpdateGroceryStatusRequest{Status: "accepted"})
+	reqPut, _ := http.NewRequest(http.MethodPut, "/api/v1/grocery-requests/"+res.GroceryRequest.ID+"/status", bytes.NewReader(updateBody))
+	reqPut.Header.Set("Content-Type", "application/json")
+	wPut := httptest.NewRecorder()
+	r.ServeHTTP(wPut, reqPut)
+
+	if wPut.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for status update, got %d", wPut.Code)
+	}
+	var putRes struct {
+		GroceryRequest *models.GroceryRequest `json:"grocery_request"`
+	}
+	json.Unmarshal(wPut.Body.Bytes(), &putRes)
+	if putRes.GroceryRequest.Status != "accepted" {
+		t.Fatalf("expected status 'accepted', got '%s'", putRes.GroceryRequest.Status)
 	}
 }
 

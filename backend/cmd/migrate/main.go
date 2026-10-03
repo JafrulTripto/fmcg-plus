@@ -48,6 +48,7 @@ func main() {
 		{"khata_entries", &models.KhataEntry{}},
 		{"stock_adjustments", &models.StockAdjustment{}},
 		{"stock_movements", &models.StockMovement{}},
+		{"grocery_requests", &models.GroceryRequest{}},
 	}
 
 	// Drop dependent view if exists so column types can be synced safely

@@ -1,3 +1,5 @@
+import '../../core/constants/app_constants.dart';
+
 class ReceiptItemModel {
   final String name;
   final int quantity;
@@ -25,6 +27,7 @@ class ReceiptItemModel {
 }
 
 class ReceiptModel {
+  final String storeId;
   final String storeName;
   final String storeAddress;
   final String storePhone;
@@ -42,6 +45,7 @@ class ReceiptModel {
   final String counter;
 
   ReceiptModel({
+    this.storeId = AppConstants.defaultStoreId,
     required this.storeName,
     required this.storeAddress,
     required this.storePhone,
@@ -66,9 +70,10 @@ class ReceiptModel {
         .toList();
 
     return ReceiptModel(
-      storeName: json['store_name'] as String? ?? 'My Store',
-      storeAddress: json['store_address'] as String? ?? 'Dhaka, Bangladesh',
-      storePhone: json['store_phone'] as String? ?? '',
+      storeId: json['store_id'] as String? ?? AppConstants.defaultStoreId,
+      storeName: json['store_name'] as String? ?? json['store_name_bn'] as String? ?? AppConstants.defaultStoreNameEn,
+      storeAddress: json['store_address'] as String? ?? json['store_branch'] as String? ?? AppConstants.defaultStoreAddress,
+      storePhone: json['store_phone'] as String? ?? json['owner_phone'] as String? ?? AppConstants.defaultStorePhone,
       orderNumber: json['order_number'] as String? ?? 'Order',
       dateTime: json['date_time'] as String? ?? '',
       customerName: json['customer_name'] as String? ?? 'Walk-in Customer',

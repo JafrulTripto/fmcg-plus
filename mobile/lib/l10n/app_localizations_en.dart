@@ -531,4 +531,442 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get otpVerificationTitle => 'OTP Verification';
+
+  @override
+  String get recordedKhataPurchases =>
+      'Recorded credit purchases by shopkeeper.';
+
+  @override
+  String get zeroOutstandingDues => 'You have zero outstanding dues.';
+
+  @override
+  String get allAccountsSettled =>
+      'All accounts settled. Zero due across all stores.';
+
+  @override
+  String get filterByStore => 'Filter by Store';
+
+  @override
+  String get allStores => 'All Stores';
+
+  @override
+  String get settleStoreBalance => 'Settle Store Balance';
+
+  @override
+  String get selectMfsChannel => 'Select MFS Channel';
+
+  @override
+  String get mfsGateway => 'MFS Gateway';
+
+  @override
+  String get connectingToMfs => 'Connecting to payment gateway...';
+
+  @override
+  String get searchLedger => 'Search ledger...';
+
+  @override
+  String get dueSales => 'Due Sales (+৳)';
+
+  @override
+  String get payments => 'Payments (-৳)';
+
+  @override
+  String get noKhataLedgerEntries => 'No Khata ledger entries';
+
+  @override
+  String get noRecordsMatchFilter => 'No records match this filter';
+
+  @override
+  String get khataLedger => 'Khata Ledger';
+
+  @override
+  String get totalOutstandingBalance => 'TOTAL OUTSTANDING BALANCE';
+
+  @override
+  String get balanceColon => 'Bal:';
+
+  @override
+  String get creditPurchase => 'Credit Purchase';
+
+  @override
+  String get repayment => 'Repayment';
+
+  @override
+  String get connectedStoreLedgerNotice =>
+      'Directly synchronized with shopkeeper\'s store ledger.';
+
+  @override
+  String get myConnectedStores => 'My Connected Stores';
+
+  @override
+  String get orderGroceries => 'Order Groceries';
+
+  @override
+  String get requestGroceries => 'Request Groceries';
+
+  @override
+  String get myOrders => 'My Orders';
+
+  @override
+  String get activeDues => 'Active Dues';
+
+  @override
+  String get settled => 'Settled';
+
+  @override
+  String get creditLimitWithColon => 'Credit Limit:';
+
+  @override
+  String get remainingCreditWithColon => 'Remaining:';
+
+  @override
+  String get noRecentPurchases => 'No recent purchases yet';
+
+  @override
+  String get memoNumber => 'Memo #';
+
+  @override
+  String get myStore => 'My Store';
+
+  @override
+  String get requestGroceryFromStore => 'Request Grocery from Store';
+
+  @override
+  String get availableStoreCatalog => 'Available Store Catalog';
+
+  @override
+  String get deliveryInstructionsOptional =>
+      'Notes / Delivery instructions (Optional)';
+
+  @override
+  String get homeDelivery => 'Home Delivery';
+
+  @override
+  String get storePickup => 'Store Pickup';
+
+  @override
+  String get submitGroceryRequest => 'Submit Grocery Request';
+
+  @override
+  String get selectStore => 'Select Store';
+
+  @override
+  String get cartTotal => 'Cart Total';
+
+  @override
+  String get settleBalanceViaMfs => 'Settle Balance via bKash / Nagad';
+
+  @override
+  String get totalGroceryRequested => 'TOTAL GROCERY REQUESTED';
+
+  @override
+  String get newOrder => '+ New Order';
+
+  @override
+  String get ordersSuffix => 'Orders';
+
+  @override
+  String get pendingSuffix => 'Pending';
+
+  @override
+  String get groceryOrders => 'Grocery Orders';
+
+  @override
+  String get noGroceryOrdersYet => 'No grocery orders yet';
+
+  @override
+  String get estAmountColon => 'Est. Amount: ';
+
+  @override
+  String get recentDigitalMemos => 'Recent Digital Memos';
+
+  @override
+  String get itemsWord => 'items';
+
+  @override
+  String get myOrdersTitle => 'My Orders';
+
+  @override
+  String get statusAccepted => 'Accepted';
+
+  @override
+  String get statusReady => 'Ready';
+
+  @override
+  String get statusCompleted => 'Completed';
+
+  @override
+  String get statusCancelled => 'Cancelled';
+
+  @override
+  String get statusPending => 'Pending';
+
+  @override
+  String get unlistedItemsOptional => 'Unlisted / Custom Items (Optional)';
+
+  @override
+  String get fulfillmentMethod => 'Fulfillment Method';
+
+  @override
+  String get deliveryAddressRequired => 'Delivery Address *';
+
+  @override
+  String get deliveryAddressHint => 'House/Road no., area';
+
+  @override
+  String get specialInstructionsOptional => 'Special Instructions (Optional)';
+
+  @override
+  String get specialInstructionsHint =>
+      'e.g. Please pack carefully, deliver by evening';
+
+  @override
+  String get selectedWord => 'selected';
+
+  @override
+  String get estSubtotalColon => 'Est. Subtotal: ';
+
+  @override
+  String get sendingEllipsis => 'Sending...';
+
+  @override
+  String get submitOrderToStore => 'Submit Order to Store';
+
+  @override
+  String get storeKhataLedger => 'Store Khata Ledger';
+
+  @override
+  String get totalOutstanding => 'TOTAL OUTSTANDING';
+
+  @override
+  String get activeDueStatus => 'Active Due';
+
+  @override
+  String get settledStatus => 'Settled';
+
+  @override
+  String get allEntries => 'All Entries';
+
+  @override
+  String get creditDueFilter => 'Credit Due';
+
+  @override
+  String get paymentsFilter => 'Payments';
+
+  @override
+  String get noLedgerRecordsFound => 'No ledger records found';
+
+  @override
+  String get storeDirectorySummary =>
+      'Summary of all stores you hold an account or ledger with.';
+
+  @override
+  String get noStoreAccountsLinked => 'No store accounts linked yet';
+
+  @override
+  String get connectedStores => 'Connected Stores';
+
+  @override
+  String get totalDue => 'Total Due';
+
+  @override
+  String get confirmLogout =>
+      'Are you sure you want to log out from the customer portal?';
+
+  @override
+  String get currentDueLabel => 'Current Due';
+
+  @override
+  String get groceryActiveOrdersSummary =>
+      'Estimated subtotal of your grocery orders sent to stores.';
+
+  @override
+  String get requestsCountSuffix => 'requests';
+
+  @override
+  String get sendGroceryListPrompt =>
+      'Select your store and send a grocery shopping list.';
+
+  @override
+  String get receiptsCountSuffix => 'receipts';
+
+  @override
+  String get posReceiptAutoSaveNotice =>
+      'Purchases from the POS will automatically appear here.';
+
+  @override
+  String get customerDashboard => 'Customer Dashboard';
+
+  @override
+  String get customerProfile => 'Customer Profile';
+
+  @override
+  String get verifiedCustomerAccount => 'Verified Customer Account';
+
+  @override
+  String get appLanguage => 'App Language';
+
+  @override
+  String get darkMode => 'Dark Mode';
+
+  @override
+  String get switchToMerchantPos => 'Switch to Dokan POS';
+
+  @override
+  String get confirmLogoutTitle => 'Confirm Logout';
+
+  @override
+  String get confirmLogoutMessage => 'Are you sure you want to log out?';
+
+  @override
+  String get homeTab => 'Home';
+
+  @override
+  String get khataTab => 'Khata';
+
+  @override
+  String get dueBadge => 'DUE';
+
+  @override
+  String get ordersTab => 'Orders';
+
+  @override
+  String get profileTab => 'Profile';
+
+  @override
+  String get viewLedger => 'View Ledger';
+
+  @override
+  String get sendOrder => 'Send Order';
+
+  @override
+  String get ledgerBook => 'Ledger Book';
+
+  @override
+  String get settleDue => 'Settle Due';
+
+  @override
+  String get currentOutstandingBalance => 'CURRENT OUTSTANDING BALANCE';
+
+  @override
+  String get zeroBalanceSettled => 'ZERO BALANCE (SETTLED)';
+
+  @override
+  String get availableCreditWithColon => 'Available Credit:';
+
+  @override
+  String get outstandingStatus => 'Outstanding';
+
+  @override
+  String get totalOutstandingAllStores => 'TOTAL OUTSTANDING (ALL STORES)';
+
+  @override
+  String get storeDirectoryKhataSummary => 'Store Directory & Khata Summary';
+
+  @override
+  String get noStoreAccountsLinkedDesc =>
+      'Connect with a storekeeper to view credit khata and order groceries.';
+
+  @override
+  String get paymentAmountLabel => 'Payment Amount (৳)';
+
+  @override
+  String get noKhataRecordsSubtitle =>
+      'No credit purchases or payments have been recorded for this store yet.';
+
+  @override
+  String get sendGroceryOrder => 'Send Grocery Order';
+
+  @override
+  String get targetStore => 'Target Store';
+
+  @override
+  String get storesConnectedSuffix => 'stores';
+
+  @override
+  String get availableProductsInStore => 'Available Products in Store';
+
+  @override
+  String get searchStoreProductsHint => 'Search products in store...';
+
+  @override
+  String get allCategories => 'All';
+
+  @override
+  String get errorLoadingProducts => 'Error loading store products';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get noProductsFound => 'No products found';
+
+  @override
+  String get outOfStock => 'Out of stock';
+
+  @override
+  String get stockPrefix => 'Stock: ';
+
+  @override
+  String get add => 'Add';
+
+  @override
+  String get orderedProducts => 'Ordered Products:';
+
+  @override
+  String get estimatedSubtotal => 'Estimated Subtotal:';
+
+  @override
+  String get additionalCustomItems => 'Additional / Custom Items:';
+
+  @override
+  String get orderSuccessMessage => 'Grocery order sent successfully!';
+
+  @override
+  String get orderErrorMessage => 'Failed to send order. Please try again.';
+
+  @override
+  String get selectedStoreFallback => 'Selected Store';
+
+  @override
+  String get valuedCustomer => 'Valued Customer';
+
+  @override
+  String get storeFallback => 'Store';
+
+  @override
+  String get mfsShort => 'MFS';
+
+  @override
+  String get selectProductsOrEnterItems =>
+      'Please select products or enter items to order';
+
+  @override
+  String get enterDeliveryAddress =>
+      'Please enter delivery address for home delivery';
+
+  @override
+  String get loadingStoreProducts => 'Loading store products...';
+
+  @override
+  String get customItemsSampleHint =>
+      'e.g. 1kg Onion, 250g Ginger, Green chillies...';
+
+  @override
+  String get customItemsInstructionHint =>
+      'You can still write items directly in the custom list below.';
+
+  @override
+  String get payViaMfs => 'Pay via MFS';
+
+  @override
+  String get storesWithOutstandingDues =>
+      'You have outstanding dues in connected stores.';
+
+  @override
+  String get sendGroceryOrderSubtitle =>
+      'Send item list for store pickup or delivery';
+
+  @override
+  String get activeGroceryOrder => 'Active Grocery Order';
 }

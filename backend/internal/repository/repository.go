@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -42,9 +43,21 @@ type Repository interface {
 	CreateTransaction(tx *models.Transaction) (*models.Transaction, error)
 	GetTransactionByID(id string) (*models.Transaction, error)
 	GetRecentTransactions(limit int) ([]models.Transaction, error)
+	GetCustomerTransactions(customerID, phone string, limit int) ([]models.Transaction, error)
 
 	// Dashboard
 	GetDashboardSummary() (*models.DashboardSummary, error)
+
+	// Grocery Requests
+	CreateGroceryRequest(req *models.GroceryRequest) (*models.GroceryRequest, error)
+	GetGroceryRequests(storeID, customerPhone, customerID, status string) ([]*models.GroceryRequest, error)
+	GetGroceryRequestByID(id string) (*models.GroceryRequest, error)
+	UpdateGroceryRequestStatus(id string, status string) (*models.GroceryRequest, error)
+
+	// Device Tokens
+	UpsertDeviceToken(token *models.DeviceToken) error
+	GetDeviceTokensByStoreID(storeID string, role string) ([]*models.DeviceToken, error)
+	DeactivateDeviceToken(tokenStr string) error
 
 	// User Authentication & Tenancy
 	CreateUser(user *models.User) (*models.User, error)
@@ -54,6 +67,7 @@ type Repository interface {
 
 	CreateStore(store *models.Store) (*models.Store, error)
 	GetStoreByID(id string) (*models.Store, error)
+	GetStores() ([]*models.Store, error)
 	GetStoresByUserID(userID string) ([]*models.Store, error)
 
 	CreateStoreMember(member *models.StoreMember) (*models.StoreMember, error)
@@ -81,6 +95,8 @@ type memoryRepo struct {
 	stores        map[string]*models.Store
 	storeMembers  map[string]*models.StoreMember // key: storeID + ":" + userID
 	refreshTokens map[string]*models.RefreshToken // key: tokenHash
+	groceryRequests map[string]*models.GroceryRequest
+	deviceTokens    map[string]*models.DeviceToken
 }
 
 func NewMemoryRepository(dataFilePath string) (Repository, error) {
@@ -98,6 +114,8 @@ func NewMemoryRepository(dataFilePath string) (Repository, error) {
 		stores:           make(map[string]*models.Store),
 		storeMembers:     make(map[string]*models.StoreMember),
 		refreshTokens:    make(map[string]*models.RefreshToken),
+		groceryRequests:  make(map[string]*models.GroceryRequest),
+		deviceTokens:     make(map[string]*models.DeviceToken),
 	}
 
 	repo.seedInitialData(dataFilePath)
@@ -116,6 +134,10 @@ func (r *memoryRepo) seedInitialData(dataFilePath string) {
 			"../bangladesh_fmcg_products.json",
 			"../../bangladesh_fmcg_products.json",
 			"../../../bangladesh_fmcg_products.json",
+			"mobile/assets/data/master_products.json",
+			"../mobile/assets/data/master_products.json",
+			"../../mobile/assets/data/master_products.json",
+			"../../../mobile/assets/data/master_products.json",
 		}
 		for _, c := range candidates {
 			b, err := os.ReadFile(c)
@@ -172,13 +194,18 @@ func (r *memoryRepo) seedInitialData(dataFilePath string) {
 
 				// Register in Master Products catalog with deterministic UUID v5
 				mpID := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("fmcg:product:"+item.Barcode)).String()
+				brandVal := item.Brand
+				catVal := item.Category
+				subcatVal := item.Subcategory
 				mp := &models.MasterProduct{
 					ID:            mpID,
 					Barcode:       item.Barcode,
 					ProductName:   item.ProductName,
-					BrandID:       item.Brand,
-					CategoryID:    item.Category,
-					SubcategoryID: item.Subcategory,
+					BrandID:       &brandVal,
+					CategoryID:    &catVal,
+					SubcategoryID: &subcatVal,
+					BrandName:     item.Brand,
+					CategoryName:  item.Category,
 					PackSize:      packStr,
 					Unit:          item.Unit,
 					SuggestedMRP:  price,
@@ -308,7 +335,11 @@ func (r *memoryRepo) GetMasterProducts(search, category string, limit, offset in
 			}
 		}
 		if category != "" && category != "All" {
-			if !strings.EqualFold(mp.CategoryID, category) {
+			cat := ""
+			if mp.CategoryID != nil {
+				cat = *mp.CategoryID
+			}
+			if !strings.EqualFold(cat, category) && !strings.EqualFold(mp.CategoryName, category) {
 				continue
 			}
 		}
@@ -357,13 +388,27 @@ func (r *memoryRepo) OnboardMasterProduct(req *models.OnboardMasterProductReques
 		name = req.CustomName
 	}
 
+	cat := "Food"
+	if mp.CategoryID != nil {
+		cat = *mp.CategoryID
+	} else if mp.CategoryName != "" {
+		cat = mp.CategoryName
+	}
+
+	brand := ""
+	if mp.BrandID != nil {
+		brand = *mp.BrandID
+	} else if mp.BrandName != "" {
+		brand = mp.BrandName
+	}
+
 	pID := uuid.New().String()
 	newProduct := &models.Product{
 		ID:            pID,
 		StoreID:       req.StoreID,
 		Name:          name,
-		Category:      mp.CategoryID,
-		Brand:         mp.BrandID,
+		Category:      cat,
+		Brand:         brand,
 		PackSize:      mp.PackSize,
 		Unit:          mp.Unit,
 		CostPrice:     req.CostPrice,
@@ -383,7 +428,7 @@ func (r *memoryRepo) OnboardMasterProduct(req *models.OnboardMasterProductReques
 		newProduct.MinThreshold = 5
 	}
 	if newProduct.StoreID == "" {
-		newProduct.StoreID = "store_default"
+		newProduct.StoreID = models.DefaultStoreID
 	}
 
 	r.products[pID] = newProduct
@@ -572,7 +617,27 @@ func (r *memoryRepo) CreateCustomer(customer *models.Customer) (*models.Customer
 	}
 	customer.CreatedAt = time.Now()
 	customer.UpdatedAt = time.Now()
-	if customer.Status == "" {
+	if customer.CurrentDue > 0 {
+		customer.Status = "warning"
+		customer.StatusLabel = "Active Balance"
+		if customer.LifetimePurchases == 0 {
+			customer.LifetimePurchases = customer.CurrentDue
+		}
+		entry := models.KhataEntry{
+			ID:             uuid.New().String(),
+			StoreID:        customer.StoreID,
+			CustomerID:     customer.ID,
+			Type:           "initial_due",
+			Label:          "Opening Balance Due",
+			Description:    "Initial balance carried over",
+			OrderTotal:     customer.CurrentDue,
+			PaidAmount:     0,
+			CreditChange:   customer.CurrentDue,
+			RunningBalance: customer.CurrentDue,
+			CreatedAt:      time.Now(),
+		}
+		customer.Ledger = []models.KhataEntry{entry}
+	} else if customer.Status == "" {
 		customer.Status = "clear"
 		customer.StatusLabel = "Zero Balance"
 	}
@@ -706,6 +771,35 @@ func (r *memoryRepo) GetRecentTransactions(limit int) ([]models.Transaction, err
 		}
 		if tx, ok := r.transactions[id]; ok {
 			result = append(result, *tx)
+		}
+	}
+	return result, nil
+}
+
+func (r *memoryRepo) GetCustomerTransactions(customerID, phone string, limit int) ([]models.Transaction, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var result []models.Transaction
+	for _, id := range r.recentTxIDs {
+		if tx, ok := r.transactions[id]; ok {
+			matches := false
+			if customerID != "" && tx.CustomerID != nil && *tx.CustomerID == customerID {
+				matches = true
+			} else if phone != "" {
+				for _, c := range r.customers {
+					if c.Phone == phone && tx.CustomerID != nil && *tx.CustomerID == c.ID {
+						matches = true
+						break
+					}
+				}
+			}
+			if matches {
+				result = append(result, *tx)
+				if limit > 0 && len(result) >= limit {
+					break
+				}
+			}
 		}
 	}
 	return result, nil
@@ -903,6 +997,18 @@ func (r *memoryRepo) GetStoreByID(id string) (*models.Store, error) {
 	return &sCopy, nil
 }
 
+func (r *memoryRepo) GetStores() ([]*models.Store, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var result []*models.Store
+	for _, store := range r.stores {
+		sCopy := *store
+		result = append(result, &sCopy)
+	}
+	return result, nil
+}
+
 func (r *memoryRepo) GetStoresByUserID(userID string) ([]*models.Store, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -996,4 +1102,142 @@ func (r *memoryRepo) RevokeAllUserRefreshTokens(userID string) error {
 	}
 	return nil
 }
+
+// ---------------------------------------------------------------------
+// Grocery Requests (memoryRepo)
+// ---------------------------------------------------------------------
+
+func (r *memoryRepo) CreateGroceryRequest(req *models.GroceryRequest) (*models.GroceryRequest, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if req.ID == "" {
+		req.ID = uuid.New().String()
+	}
+	if req.StoreID == "" {
+		req.StoreID = models.DefaultStoreID
+	}
+	if req.Status == "" {
+		req.Status = "pending"
+	}
+	if req.DeliveryType == "" {
+		req.DeliveryType = "pickup"
+	}
+	now := time.Now()
+	req.CreatedAt = now
+	req.UpdatedAt = now
+
+	r.groceryRequests[req.ID] = req
+	return req, nil
+}
+
+func (r *memoryRepo) GetGroceryRequests(storeID, customerPhone, customerID, status string) ([]*models.GroceryRequest, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var result []*models.GroceryRequest
+	for _, gr := range r.groceryRequests {
+		if storeID != "" && gr.StoreID != storeID {
+			continue
+		}
+		if customerPhone != "" {
+			variants := PhoneVariants(customerPhone)
+			matched := false
+			for _, v := range variants {
+				if gr.CustomerPhone == v {
+					matched = true
+					break
+				}
+			}
+			if !matched && gr.CustomerPhone != customerPhone {
+				continue
+			}
+		}
+		if customerID != "" && gr.CustomerID != customerID {
+			continue
+		}
+		if status != "" && gr.Status != status {
+			continue
+		}
+		result = append(result, gr)
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].CreatedAt.After(result[j].CreatedAt)
+	})
+
+	return result, nil
+}
+
+func (r *memoryRepo) GetGroceryRequestByID(id string) (*models.GroceryRequest, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	gr, ok := r.groceryRequests[id]
+	if !ok {
+		return nil, fmt.Errorf("grocery request not found: %s", id)
+	}
+	return gr, nil
+}
+
+func (r *memoryRepo) UpdateGroceryRequestStatus(id string, status string) (*models.GroceryRequest, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	gr, ok := r.groceryRequests[id]
+	if !ok {
+		return nil, fmt.Errorf("grocery request not found: %s", id)
+	}
+	gr.Status = status
+	gr.UpdatedAt = time.Now()
+	return gr, nil
+}
+
+// Device Tokens (memoryRepo)
+
+func (r *memoryRepo) UpsertDeviceToken(token *models.DeviceToken) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if token.ID == "" {
+		token.ID = uuid.New().String()
+	}
+	token.Active = true
+	token.UpdatedAt = time.Now()
+	// Remove any existing entry with same token string
+	for id, existing := range r.deviceTokens {
+		if existing.Token == token.Token {
+			delete(r.deviceTokens, id)
+		}
+	}
+	r.deviceTokens[token.ID] = token
+	return nil
+}
+
+func (r *memoryRepo) GetDeviceTokensByStoreID(storeID string, role string) ([]*models.DeviceToken, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var result []*models.DeviceToken
+	for _, dt := range r.deviceTokens {
+		if dt.StoreID == storeID && dt.Active {
+			if role == "" || dt.Role == role {
+				result = append(result, dt)
+			}
+		}
+	}
+	return result, nil
+}
+
+func (r *memoryRepo) DeactivateDeviceToken(tokenStr string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, dt := range r.deviceTokens {
+		if dt.Token == tokenStr {
+			dt.Active = false
+			dt.UpdatedAt = time.Now()
+		}
+	}
+	return nil
+}
+
+
 
